@@ -10,14 +10,77 @@ Access your Claude Code sessions from any browser — phone, tablet, or laptop. 
 - 💾 **Persistent** — Sessions survive disconnects
 - 🚀 **Multi-project** — Run multiple Claude sessions in tabs
 
-## Requirements
+## Prerequisites
 
-- Ubuntu WSL (20.04, 22.04, or 24.04)
-- [Tailscale](https://tailscale.com) account (free)
-- Claude Code installed
-- sudo access
+Complete these steps **before** running the installer.
 
-## Quick Install
+### 1. Windows Subsystem for Linux (WSL)
+
+You need Ubuntu running in WSL (20.04, 22.04, or 24.04). If you don't have it yet:
+
+```powershell
+# Run in PowerShell as Administrator
+wsl --install -d Ubuntu
+```
+
+Restart your machine when prompted, then open Ubuntu from the Start menu to finish setup.
+
+### 2. Claude Code in WSL
+
+Install Claude Code inside your WSL Ubuntu terminal:
+
+```bash
+# Install Node.js (if not already installed)
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Install Claude Code
+npm install -g @anthropic-ai/claude-code
+```
+
+Run `claude` once to authenticate and confirm it's working before proceeding.
+
+### 3. Projects folder
+
+All your projects must live in `~/projects` inside WSL. The launcher scans this folder to find your projects.
+
+```bash
+mkdir -p ~/projects
+```
+
+Move or clone your project repositories into this folder:
+
+```bash
+cd ~/projects
+git clone https://github.com/your-org/your-repo.git
+```
+
+### 4. Tailscale setup (all devices)
+
+Tailscale creates a private encrypted network between your devices. You need it installed and authenticated on **every device** you want to access the terminal from.
+
+**On your WSL host (required):**
+
+```bash
+# Install Tailscale in WSL
+curl -fsSL https://tailscale.com/install.sh | sh
+
+# Authenticate — this opens a browser link to sign in
+sudo tailscale up
+```
+
+**On every other device (phone, tablet, laptop, etc.):**
+
+1. Download [Tailscale](https://tailscale.com/download) for your platform
+2. Install and open the app
+3. Sign in with the **same account** you used in WSL
+4. Verify the device appears in your tailnet (`tailscale status` in WSL)
+
+All devices must be on the same Tailscale account to reach each other.
+
+## Install
+
+Once all prerequisites are complete:
 
 ```bash
 # Extract
@@ -32,26 +95,23 @@ cd extras
 sudo ./install-extras.sh
 source ~/.bashrc
 
-# Setup Tailscale (if not already done)
-sudo tailscale up
+# Expose the terminal over Tailscale
 tailscale serve --bg 7681
 
 # Start
 claude-terminal-start
 ```
 
-Open `http://localhost:7681` — you're ready!
+Open `http://localhost:7681` (local) or your Tailscale URL (remote) — you're ready!
 
 ## Configuration
 
-Edit `~/.bashrc` to customize:
+The default settings expect your projects in `~/projects` and use `ccc` as the Claude command. To change these, edit `~/.bashrc`:
 
 ```bash
-export CLAUDE_PROJECTS_DIR="$HOME/projects"  # Your projects folder
-export CLAUDE_CMD="ccc"                       # Your Claude command
+export CLAUDE_PROJECTS_DIR="$HOME/projects"  # Default: ~/projects
+export CLAUDE_CMD="ccc"                       # Default: ccc (options: claude, ccc, or any alias)
 ```
-
-Options for `CLAUDE_CMD`: `claude`, `ccc`, or any alias you use.
 
 ## Daily Usage
 
