@@ -114,5 +114,5 @@ claude-terminal-start
 Edit `~/.bashrc` to customize:
 ```bash
 export CLAUDE_PROJECTS_DIR="$HOME/projects"
-export CLAUDE_CMD="ccc"  # or: claude
+export CLAUDE_CMD="claude"  # Change to your alias if needed (e.g., ccc)
 ```

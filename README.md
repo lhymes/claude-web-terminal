@@ -106,11 +106,11 @@ Open `http://localhost:7681` (local) or your Tailscale URL (remote) — you're r
 
 ## Configuration
 
-The default settings expect your projects in `~/projects` and use `ccc` as the Claude command. To change these, edit `~/.bashrc`:
+The default settings expect your projects in `~/projects` and use `claude` as the launch command. To change these, edit `~/.bashrc`:
 
 ```bash
 export CLAUDE_PROJECTS_DIR="$HOME/projects"  # Default: ~/projects
-export CLAUDE_CMD="ccc"                       # Default: ccc (options: claude, ccc, or any alias)
+export CLAUDE_CMD="claude"                    # Change to your alias if needed (e.g., ccc)
 ```
 
 ## Daily Usage
