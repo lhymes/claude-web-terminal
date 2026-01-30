@@ -1,6 +1,8 @@
 # Claude Code Web Terminal
 
-![Claude Code Web Terminal](hero.jpg)
+<p align="center">
+  <img src="hero.jpg" alt="Claude Code Web Terminal" width="100%">
+</p>
 
 Run Claude Code from any device — your phone, tablet, or any laptop — through a purpose-built terminal interface that works entirely in the browser. No app to install, no SSH client to configure, no compromises on usability.
 
