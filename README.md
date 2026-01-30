@@ -5,10 +5,12 @@ Access your Claude Code sessions from any browser — phone, tablet, or laptop. 
 ## Features
 
 - **Web-based** — Works from any browser, no app install needed
-- **Mobile-friendly** — Custom keyboard, tab bar, and touch-optimized UI
+- **Mobile-optimized** — iOS keyboard integration, touch toolbar, tab bar, scroll pill
+- **Installable** — Add to Home Screen for a native app experience (PWA)
 - **Secure** — All traffic encrypted through Tailscale VPN
 - **Persistent** — Sessions survive disconnects and auto-recover after reboot
 - **Multi-project** — Run multiple Claude sessions in tmux windows
+- **Upgrade-safe** — User settings preserved across upgrades
 
 ## Prerequisites
 
@@ -64,17 +66,7 @@ ttyd --version   # Need 1.7.4+
 
 If not installed, build from source or install from your package manager. See [ttyd releases](https://github.com/tsl0922/ttyd/releases).
 
-### 4. Projects folder
-
-The launcher scans `~/projects` to find your projects:
-
-```bash
-mkdir -p ~/projects
-cd ~/projects
-git clone https://github.com/your-org/your-repo.git
-```
-
-### 5. Tailscale (for remote access)
+### 4. Tailscale (for remote access)
 
 Tailscale creates a private encrypted network between your devices.
 
@@ -98,7 +90,7 @@ sudo tailscale up
 git clone https://github.com/lhymes/claude-web-terminal.git
 cd claude-web-terminal
 
-# Run the installer (sets up tmux config, systemd service, launcher scripts, healthcheck)
+# Run the installer
 sudo ./install-local.sh
 
 # Expose over Tailscale (for remote access)
@@ -108,16 +100,43 @@ tailscale serve --bg 7681
 sudo systemctl start claude-terminal
 ```
 
+The installer will prompt you to configure:
+- **Claude command** — The command to launch Claude Code (default: `claude`). Use this if you have a custom alias.
+- **Projects directory** — Where your projects live (default: `~/projects`).
+
+Settings are saved to `~/.config/claude-terminal/settings.conf` and sourced via `~/.bashrc`.
+
 Open `http://localhost:7681` (local) or your Tailscale URL (remote).
+
+## Upgrading
+
+Pull the latest code and re-run the installer. Your settings are preserved automatically:
+
+```bash
+cd claude-web-terminal
+git pull
+sudo ./install-local.sh
+sudo systemctl restart claude-terminal
+```
+
+## Uninstalling
+
+```bash
+sudo ./install-local.sh --uninstall
+```
+
+This prompts for two confirmations before removing services, scripts, configuration, and shell aliases. Your project files are not touched.
 
 ## Configuration
 
-The launcher scripts use environment variables. Add to `~/.bashrc`:
+User settings are stored in `~/.config/claude-terminal/settings.conf`:
 
 ```bash
-export CLAUDE_PROJECTS_DIR="$HOME/projects"  # Default: ~/projects
-export CLAUDE_CMD="claude"                    # Change if you use an alias
+CLAUDE_CMD="claude"                    # Command to launch Claude Code
+CLAUDE_PROJECTS_DIR="$HOME/projects"   # Where projects are stored
 ```
+
+Edit this file directly to change settings. Changes take effect on next shell login (or run `source ~/.bashrc`).
 
 ## Daily Usage
 
@@ -148,34 +167,36 @@ export CLAUDE_CMD="claude"                    # Change if you use an alias
 1. Install **Tailscale** app on your phone
 2. Sign in to your tailnet
 3. Open your terminal URL (get it with `tailscale serve status`)
-4. Safari: Share > Add to Home Screen
-5. Tap the icon to launch — works like a native app
+4. Safari: Share > Add to Home Screen (launches as a standalone app with custom icon)
 
 ### Mobile Interface
 
 On mobile screens (<769px), the interface provides:
 
-**Tab bar (top):** Numbered buttons 1-9 for switching tmux windows. Tap to switch — no keyboard invoked.
+**Tab bar (top):** Buttons for switching tmux windows. Tab 1 is context-aware: shows **+** when you're on it (tap to launch the project picker), shows **1** when you're on another tab (tap to navigate back).
 
-**Shortcut bar (bottom):** Quick access to Esc, Tab, ^C, ^D, arrow keys, Ctrl toggle, and keyboard toggle.
+**Shortcut bar (bottom):** Quick access to Esc, Tab, Enter, left/right arrows, ^C, ^D, Ctrl toggle, and keyboard toggle.
 
-**Custom QWERTY keyboard:** Tap "ABC" to open a compact on-screen keyboard with:
+**iOS keyboard (default):** Tapping the terminal opens the native iOS keyboard. The ABC/X button cycles between keyboards:
+- Tap to switch between iOS keyboard and custom keyboard
+- Long-press to dismiss all keyboards
+
+**Custom QWERTY keyboard:** A compact on-screen keyboard with:
 - Full QWERTY layout with number row
 - Shift and Ctrl sticky modifiers
 - Long-press any letter for its symbol (shown as hints)
 - Symbol layouts (#+= and 123 modes)
-- Long-press "ABC" to switch to the native iOS keyboard instead
 
-**Scroll buttons:** Floating translucent arrows on the right edge for scrolling terminal history.
+**Scroll pill:** A touch-drag control on the right edge for scrolling terminal history. Drag up to scroll up, drag down to scroll down. Speed increases the further you drag from center.
 
 All mobile UI elements are hidden on desktop browsers.
 
 ### Mobile Tips
 
 - **Tap tab numbers** at the top to switch sessions
-- Keep the **launcher** tab (window 1) for running `cl`
-- Use the shortcut bar and custom keyboard instead of the iOS keyboard
-- Long-press "ABC" if you need the native iOS keyboard (e.g., for dictation)
+- Tap **+** on tab 1 to pick a new project
+- The iOS keyboard stays open while using shortcut bar buttons
+- Use the scroll pill on the right edge to browse history
 - Exit Claude with `/exit` when you need shell access
 
 ## Session Persistence
@@ -253,13 +274,15 @@ All devices connect to the same tmux session — you see identical state everywh
 
 ```
 claude-web-terminal/
-├── html/index.html      # Custom ttyd frontend (xterm.js + custom keyboard + tab bar)
-├── install-local.sh     # Installer (tmux config, systemd service, launcher scripts, healthcheck)
-├── upgrade.sh           # Upgrade from Zellij or reinstall
+├── html/
+│   ├── index.html       # Custom ttyd frontend (xterm.js + touch UI)
+│   ├── icon.svg         # App icon for PWA / home screen
+│   └── manifest.json    # Web app manifest
+├── install-local.sh     # Installer / upgrader / uninstaller
+├── upgrade.sh           # Upgrade from Zellij version
 ├── README.md            # This file
 ├── QUICK-REFERENCE.md   # Printable cheat sheet
-├── LICENSE              # MIT
-└── .github/workflows/   # CI
+└── LICENSE              # MIT
 ```
 
 ## Author

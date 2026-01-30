@@ -4,7 +4,7 @@
 
 ### Starting Your Day
 1. Open browser: `http://localhost:7681` (local) or your Tailscale URL (remote)
-2. Type `cl` in the launcher tab
+2. Type `cl` in the launcher tab (or tap **+** on mobile)
 3. Select projects with arrow keys, **Tab** to multi-select, **Enter** to launch
 
 ### Switching Sessions
@@ -31,13 +31,16 @@
 1. Install **Tailscale app** on your phone
 2. Sign in to your tailnet
 3. Open your terminal URL in Safari/Chrome
-4. **Add to Home Screen** (Share menu)
+4. **Add to Home Screen** (Share menu) — launches as a standalone app
 
 ### Using on Mobile
-- **Tap numbered buttons** at top to switch sessions
-- Use window 1 (launcher) to run `cl` for new projects
-- Tap "ABC" for custom keyboard, long-press for iOS keyboard
-- Use floating scroll arrows to browse terminal history
+- **Tap tab numbers** at top to switch sessions
+- **Tap +** on tab 1 to launch the project picker
+- Tapping the terminal opens the **iOS keyboard** by default
+- Tap **X** to switch to custom keyboard, long-press **X** to dismiss all keyboards
+- Use the **scroll pill** on the right edge to browse terminal history (drag up/down)
+- **Shortcut bar** has Esc, Tab, Enter, left/right arrows, ^C, ^D, Ctrl
+- Shortcut bar buttons work without dismissing the iOS keyboard
 - Exit Claude with `/exit` if you need the shell
 
 ---
@@ -46,10 +49,10 @@
 
 | Scenario | Sessions Survive? |
 |----------|-------------------|
-| Close browser | ✓ Yes |
-| Switch devices | ✓ Yes |
-| Lose WiFi | ✓ Yes |
-| WSL/Windows reboot | ✓ Service auto-starts (run `cl` to relaunch projects) |
+| Close browser | Yes |
+| Switch devices | Yes |
+| Lose WiFi | Yes |
+| WSL/Windows reboot | Service auto-starts (run `cl` to relaunch projects) |
 
 ---
 
@@ -89,30 +92,34 @@ Get your Tailscale URL: `tailscale serve status`
 
 ---
 
-## First-Time Setup
+## Install / Upgrade / Uninstall
 
 ```bash
-# 1. Clone and install
+# First-time install
 git clone https://github.com/lhymes/claude-web-terminal.git
 cd claude-web-terminal
 sudo ./install-local.sh
-
-# 2. Setup Tailscale (for remote access)
-sudo tailscale up
 tailscale serve --bg 7681
-
-# 3. Start the service
 sudo systemctl start claude-terminal
 
-# 4. Open http://localhost:7681
+# Upgrade (settings preserved)
+cd claude-web-terminal
+git pull
+sudo ./install-local.sh
+sudo systemctl restart claude-terminal
+
+# Uninstall (two-step confirmation, projects untouched)
+sudo ./install-local.sh --uninstall
 ```
 
 ---
 
 ## Configuration
 
-Edit `~/.bashrc` to customize:
+Settings are stored in `~/.config/claude-terminal/settings.conf`:
 ```bash
-export CLAUDE_PROJECTS_DIR="$HOME/projects"
-export CLAUDE_CMD="claude"  # Change to your alias if needed (e.g., ccc)
+CLAUDE_CMD="claude"                    # Command to launch Claude Code
+CLAUDE_PROJECTS_DIR="$HOME/projects"   # Where projects are stored
 ```
+
+Edit the file and run `source ~/.bashrc` to apply changes.
