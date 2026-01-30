@@ -2,13 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Claude Terminal</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { height: 100dvh; height: 100%; background: #1e1e1e; overflow: hidden; }
-  #terminal { height: 100dvh; height: 100%; width: 100%; }
+  #terminal {
+    height: 100dvh; height: 100%; width: 100%;
+    touch-action: manipulation;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
 
   /* Toolbar: three states via classes on #toolbar */
   /* .collapsed = handle only, .compact = handle + primary, (default) = all rows */
@@ -16,6 +21,7 @@
     position: fixed; bottom: 0; left: 0; right: 0;
     background: #252526; border-top: 1px solid #3c3c3c;
     z-index: 10; transition: transform 0.2s ease;
+    padding-bottom: env(safe-area-inset-bottom);
   }
   #toolbar.collapsed { transform: translateY(calc(100% - 28px)); }
   #toolbar.compact .ext-row { display: none; }
@@ -122,9 +128,18 @@
     'cmd-help':  '/help\r'
   };
 
+  // ---- Responsive Font Size ----
+  // Smaller fonts on narrow screens to maximize usable columns
+  function getResponsiveFontSize() {
+    var w = window.innerWidth;
+    if (w <= 360) return 11;   // iPhone SE (320px): ~42 cols
+    if (w <= 428) return 12;   // Most phones (375-428px): ~44 cols
+    return 14;                 // Tablets and desktop
+  }
+
   // ---- Terminal Setup ----
   var term = new Terminal({
-    fontSize: 14,
+    fontSize: getResponsiveFontSize(),
     fontFamily: "'Cascadia Code', 'Fira Code', 'Consolas', monospace",
     theme: { background: '#1e1e1e', foreground: '#d4d4d4', cursor: '#d4d4d4' },
     cursorBlink: true,
@@ -276,6 +291,27 @@
       toolbar.style.bottom = (window.innerHeight - vv.height - vv.offsetTop) + 'px';
     });
   }
+
+  // ---- Orientation / Resize Response ----
+  // Auto-collapse toolbar in landscape to maximize vertical space.
+  // Update font size when screen width changes (orientation change).
+  var lastWidth = window.innerWidth;
+  window.addEventListener('resize', function() {
+    var w = window.innerWidth;
+    if (w === lastWidth) return;
+    lastWidth = w;
+
+    // Update font size for new width
+    var newSize = getResponsiveFontSize();
+    if (term.options.fontSize !== newSize) {
+      term.options.fontSize = newSize;
+    }
+
+    // Auto-collapse in landscape (wider than tall)
+    if (window.innerWidth > window.innerHeight && toolbarState !== 'collapsed') {
+      setToolbarState('collapsed');
+    }
+  });
 
   // ---- Start ----
   adjustHeight();
