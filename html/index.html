@@ -15,13 +15,13 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
-    height: 100%; background: #1e1e1e; overflow: hidden;
+    height: 100dvh; background: #1e1e1e; overflow: hidden;
     position: fixed; width: 100%;
   }
 
   #container {
     display: flex; flex-direction: column;
-    height: 100%; width: 100%;
+    height: 100dvh; width: 100%;
     overflow: hidden;
   }
 
@@ -55,7 +55,6 @@
   #shortcut-bar button:active { background: #569cd6; color: #1e1e1e; }
   #shortcut-bar button.accent { background: #264f78; border-color: #569cd6; }
   #shortcut-bar button.active { background: #569cd6; color: #1e1e1e; }
-  #shortcut-bar button.dim { opacity: 0.6; font-size: 10px; }
 
   /* ---- Custom keyboard ---- */
   #custom-kb {
@@ -150,6 +149,7 @@
     flex: none;
     display: flex; flex-wrap: nowrap;
     padding: 2px 3px; gap: 2px;
+    padding-top: env(safe-area-inset-top, 2px);
     background: #1e1e1e; border-bottom: 1px solid #3c3c3c;
   }
   #tab-bar button {
@@ -229,9 +229,8 @@
   <div id="terminal"></div>
   <input id="nokb" class="kb-input" inputmode="none"
     autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-  <input id="withkb" class="kb-input" inputmode="text"
-    autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-    enterkeyhint="send">
+  <input id="withkb" class="kb-input" inputmode="text" type="text"
+    autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
 
   <!-- Shortcut bar: terminal special keys -->
   <div id="shortcut-bar">
@@ -240,8 +239,8 @@
     <button data-action="enter">&crarr;</button>
     <button data-action="left">&larr;</button>
     <button data-action="right">&rarr;</button>
-    <button data-action="interrupt" class="dim">^C</button>
-    <button data-action="eof" class="dim">^D</button>
+    <button data-action="prev-tab">&#x25C0;</button>
+    <button data-action="next-tab">&#x25B6;</button>
     <button id="ctrl-toggle">Ctrl</button>
     <button id="kb-show" class="accent">ABC</button>
   </div>
@@ -251,11 +250,12 @@
 </div>
 
 <div id="desktop-toolbar">
-  <button id="dt-collapse" title="Collapse toolbar" style="padding:0 4px;font-size:14px;line-height:26px;">&#x25B6;</button>
+  <button id="dt-collapse" title="Collapse toolbar" style="padding:0 2px;font-size:10px;line-height:26px;min-width:20px;">&#x25B8;</button>
   <span id="dt-mini" style="display:none;align-items:center;gap:3px;">
-    <button id="dt-mini-prev" title="Previous tab" style="min-width:24px;padding:0 4px;">&#x25C0;</button>
-    <button id="dt-mini-next" title="Next tab" style="min-width:24px;padding:0 4px;">&#x25B6;</button>
     <button id="dt-mini-mode" class="accent" title="Toggle mode" style="min-width:24px;padding:0 4px;">S</button>
+    <button id="dt-mini-new" class="accent" title="New session" style="min-width:24px;padding:0 4px;">+</button>
+    <button id="dt-mini-prev" title="Previous tab" style="min-width:24px;padding:0 4px;font-size:10px;">&#x25C0;</button>
+    <button id="dt-mini-next" title="Next tab" style="min-width:24px;padding:0 4px;font-size:10px;">&#x25B6;</button>
   </span>
   <span id="dt-content">
     <span style="color:#888;font-size:11px;font-family:monospace;margin-right:2px;">Mode:</span>
@@ -466,11 +466,11 @@
     { keys: '_ABC_zxcvbnm_BKSP_', inset: false },
     { keys: '_SYM2__CTRL__SLASH__SPACE__DOT__DASH__ENTER_', inset: false }
   ];
-  var SYMBOLS2 = [
-    { keys: '1234567890', cls: 'kb-num-row' },
-    { keys: '!@#$%^&*()', inset: false },
-    { keys: '~`_+=|\\{}', inset: false },
-    { keys: '_ABC_:<>[]?;_BKSP_', inset: false },
+  var TERMCMD = [
+    { keys: '_CA__CB__CC__CD__CE__CF__CG__CH_', cls: 'kb-num-row' },
+    { keys: '_CK__CL__CN__CO__CP__CR__CS__CT_' },
+    { keys: '_CU__CV__CW__CX__CY__CZ__ESC_', inset: true },
+    { keys: '_ABC__HOME__END__PGUP__PGDN__DEL__BKSP_', inset: false },
     { keys: '_SYM__CTRL__SLASH__SPACE__DOT__DASH__ENTER_', inset: false }
   ];
 
@@ -526,7 +526,7 @@
             btn.dataset.special = 'sym';
             break;
           case 'SYM2':
-            btn.textContent = '123';
+            btn.textContent = 'Cmd';
             btn.className += ' dark wide';
             btn.dataset.special = 'sym2';
             break;
@@ -564,7 +564,44 @@
             btn.textContent = '-';
             btn.dataset.char = '-';
             break;
+          case 'ESC':
+            btn.textContent = 'Esc';
+            btn.className += ' dark';
+            btn.dataset.special = 'esc';
+            break;
+          case 'HOME':
+            btn.textContent = 'Home';
+            btn.className += ' dark';
+            btn.dataset.special = 'home';
+            break;
+          case 'END':
+            btn.textContent = 'End';
+            btn.className += ' dark';
+            btn.dataset.special = 'end';
+            break;
+          case 'PGUP':
+            btn.textContent = 'PgUp';
+            btn.className += ' dark';
+            btn.dataset.special = 'pgup';
+            break;
+          case 'PGDN':
+            btn.textContent = 'PgDn';
+            btn.className += ' dark';
+            btn.dataset.special = 'pgdn';
+            break;
+          case 'DEL':
+            btn.textContent = 'Del';
+            btn.className += ' dark';
+            btn.dataset.special = 'del';
+            break;
           default:
+            // Control character keys (^A through ^Z)
+            if (k.length === 2 && k[0] === 'C' && k[1] >= 'A' && k[1] <= 'Z') {
+              btn.textContent = '^' + k[1];
+              btn.className += ' dark';
+              btn.dataset.special = 'ctrl-' + k[1].toLowerCase();
+              break;
+            }
             // Regular character key
             var display = (shiftActive && k.length === 1 && k >= 'a' && k <= 'z') ? k.toUpperCase() : k;
             btn.textContent = display;
@@ -665,11 +702,39 @@
               break;
             case 'sym2':
               symMode = true;
-              buildKeyboard(SYMBOLS2);
+              buildKeyboard(TERMCMD);
               break;
             case 'abc':
               symMode = false;
               buildKeyboard(LETTERS);
+              break;
+            case 'esc':
+              sendInput('\x1b');
+              break;
+            case 'home':
+              sendInput('\x1b[H');
+              break;
+            case 'end':
+              sendInput('\x1b[F');
+              break;
+            case 'pgup':
+              sendInput('\x1b[5~');
+              break;
+            case 'pgdn':
+              sendInput('\x1b[6~');
+              break;
+            case 'del':
+              sendInput('\x1b[3~');
+              break;
+            default:
+              // Handle ctrl-X keys from terminal command keyboard
+              if (sp.indexOf('ctrl-') === 0) {
+                var letter = sp.charAt(5);
+                var ctrlCode = letter.toUpperCase().charCodeAt(0) - 64;
+                if (ctrlCode >= 0 && ctrlCode <= 31) {
+                  sendInput(String.fromCharCode(ctrlCode));
+                }
+              }
               break;
           }
         }
@@ -749,10 +814,8 @@
     if (abcLongTimer) { clearTimeout(abcLongTimer); abcLongTimer = null; }
     if (abcFired) return;
     if (iosKbMode) {
-      // iOS KB visible -> switch to custom KB
-      iosKbMode = false;
-      nokb.focus();
-      setTimeout(showCustomKb, 100);
+      // iOS KB visible -> dismiss all
+      dismissAllKeyboards();
     } else if (kbVisible) {
       // Custom KB visible -> switch to iOS KB
       hideCustomKb();
@@ -760,10 +823,8 @@
       withkb.focus();
       updateKbLabel();
     } else {
-      // No KB -> show iOS KB
-      iosKbMode = true;
-      withkb.focus();
-      updateKbLabel();
+      // No KB -> show custom KB
+      showCustomKb();
     }
   });
   kbShowBtn.addEventListener('click', function(e) {
@@ -787,9 +848,29 @@
   document.querySelectorAll('#shortcut-bar [data-action]').forEach(function(btn) {
     setupTouchBtn(btn, function() {
       var action = btn.getAttribute('data-action');
-      var seq = ACTIONS[action];
-      if (seq) sendInput(seq);
-      maintainFocus();
+      if (action === 'prev-tab') {
+        var prev = currentTab > 1 ? currentTab - 1 : 9;
+        sendInput('\x1b' + prev);
+        currentTab = prev;
+        document.querySelectorAll('#tab-bar button').forEach(function(b) { b.classList.remove('active'); });
+        document.querySelector('#tab-bar [data-tab="' + prev + '"]').classList.add('active');
+        updateTab1Button();
+        if (iosKbMode) dismissAllKeyboards();
+        else nokb.focus();
+      } else if (action === 'next-tab') {
+        var next = currentTab < 9 ? currentTab + 1 : 1;
+        sendInput('\x1b' + next);
+        currentTab = next;
+        document.querySelectorAll('#tab-bar button').forEach(function(b) { b.classList.remove('active'); });
+        document.querySelector('#tab-bar [data-tab="' + next + '"]').classList.add('active');
+        updateTab1Button();
+        if (iosKbMode) dismissAllKeyboards();
+        else nokb.focus();
+      } else {
+        var seq = ACTIONS[action];
+        if (seq) sendInput(seq);
+        maintainFocus();
+      }
     });
   });
 
@@ -824,7 +905,9 @@
       document.querySelectorAll('#tab-bar button').forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
       updateTab1Button();
-      maintainFocus();
+      // Dismiss iOS keyboard when switching tabs
+      if (iosKbMode) dismissAllKeyboards();
+      else nokb.focus();
     });
   });
 
@@ -842,14 +925,26 @@
       dtCollapsed = !dtCollapsed;
       dtContent.style.display = dtCollapsed ? 'none' : '';
       dtMini.style.display = dtCollapsed ? 'inline-flex' : 'none';
-      dtCollapse.innerHTML = dtCollapsed ? '&#x25C0;' : '&#x25B6;';
+      dtCollapse.innerHTML = dtCollapsed ? '&#x25C2;' : '&#x25B8;';
       dtCollapse.title = dtCollapsed ? 'Expand toolbar' : 'Collapse toolbar';
     });
 
     var dtMiniPrev = document.getElementById('dt-mini-prev');
     var dtMiniNext = document.getElementById('dt-mini-next');
     var dtMiniMode = document.getElementById('dt-mini-mode');
+    var dtMiniNew = document.getElementById('dt-mini-new');
 
+    dtMiniNew.addEventListener('click', function() {
+      // Same as + New: switch to tab 1, clear, launch picker
+      sendInput('\x1b1');
+      currentTab = 1;
+      updateDesktopTabs();
+      setTimeout(function() {
+        sendInput('\x0c');
+        setTimeout(function() { sendInput('cl\r'); }, 100);
+      }, 150);
+      term.focus();
+    });
     dtMiniPrev.addEventListener('click', function() {
       var prev = currentTab > 1 ? currentTab - 1 : 9;
       sendInput('\x1b' + prev);
@@ -913,7 +1008,11 @@
         var tx = e.changedTouches[0].clientX;
         if (tx > window.innerWidth - 60) return;
       }
-      if (!kbVisible) {
+      if (kbVisible) {
+        // Custom KB showing — close it, open iOS KB
+        hideCustomKb();
+      }
+      if (!iosKbMode) {
         iosKbMode = true;
         withkb.focus();
         updateKbLabel();
@@ -923,7 +1022,12 @@
 
   // ---- Layout ----
   function updateLayout() {
-    var h = (window.visualViewport) ? window.visualViewport.height : window.innerHeight;
+    var h;
+    if (window.visualViewport) {
+      h = window.visualViewport.height;
+    } else {
+      h = window.innerHeight;
+    }
     container.style.height = h + 'px';
     doFit();
   }
