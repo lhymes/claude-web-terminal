@@ -45,6 +45,7 @@ if [[ "${1:-}" == "--uninstall" ]]; then
     echo "  - Frontend files (/usr/local/share/claude-terminal/)"
     echo "  - Configuration (~/.config/claude-terminal/)"
     echo "  - Shell configuration (bashrc block + tmux.conf)"
+    echo "  - Sudoers entry (if enabled)"
     echo ""
     echo "Your project files will NOT be removed."
     echo ""
@@ -85,6 +86,10 @@ if [[ "${1:-}" == "--uninstall" ]]; then
     rm -rf /usr/local/share/claude-terminal
     print_success "Frontend files removed"
 
+    # Remove sudoers entry
+    rm -f /etc/sudoers.d/claude-terminal
+    print_success "Sudoers entry removed"
+
     # Remove config
     rm -rf "$CONFIG_DIR"
     print_success "Configuration removed"
@@ -115,7 +120,10 @@ fi
 # ============================================================================
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 IS_UPGRADE=false
-if [[ -f "$MARKER_FILE" ]]; then
+if [[ -f "$MARKER_FILE" ]] \
+   || [[ -f /etc/systemd/system/claude-terminal.service ]] \
+   || [[ -f "$SETTINGS_FILE" ]] \
+   || [[ -f /usr/local/bin/claude-launcher ]]; then
     IS_UPGRADE=true
     print_info "Existing installation detected — upgrading (settings preserved)"
 else
@@ -162,6 +170,10 @@ setw -g window-status-current-format " #I:#W "
 setw -g window-status-current-style "bg=#569cd6,fg=#1e1e1e,bold"
 setw -g window-status-style "bg=#2d2d2d,fg=#d4d4d4"
 setw -g window-status-separator ""
+
+# Alt+0: new session launcher (select/create window 1, clear, run cl)
+bind -n M-0 if-shell "tmux select-window -t :1" "" "new-window -t :1" \; \
+  send-keys C-l \; send-keys "cl" Enter
 
 # Reduce escape delay for responsive feel
 set -sg escape-time 10
@@ -499,6 +511,29 @@ else
         print_success "Created projects directory: $user_projects"
     fi
 
+    # Prompt for remote sudo access
+    echo ""
+    echo -e "${YELLOW}── Remote Sudo Access ──${NC}"
+    echo ""
+    echo "This allows running sudo commands without a password in the"
+    echo "web terminal. This is convenient but carries serious risk:"
+    echo ""
+    echo -e "  ${RED}WARNING:${NC}"
+    echo "  - Anyone with access to your terminal session has root access"
+    echo "  - You MUST only access this terminal through Tailscale VPN"
+    echo "  - NEVER expose ttyd directly to the internet or local network"
+    echo "  - Your device security (screen lock, passwords) is your last"
+    echo "    line of defense — treat it seriously"
+    echo ""
+    read -p "Enable remote sudo? [y/N]: " user_sudo < /dev/tty
+    user_sudo_enabled="no"
+    if [[ "$user_sudo" == "y" || "$user_sudo" == "Y" ]]; then
+        user_sudo_enabled="yes"
+        echo "$USER_NAME ALL=(ALL) NOPASSWD: ALL" > "/etc/sudoers.d/claude-terminal"
+        chmod 440 "/etc/sudoers.d/claude-terminal"
+        print_success "Passwordless sudo enabled for $USER_NAME"
+    fi
+
     # Write settings file
     sudo -u "$USER_NAME" mkdir -p "$CONFIG_DIR"
     cat > "$SETTINGS_FILE" << SETTINGS
@@ -507,6 +542,7 @@ else
 # Changes take effect on next shell login.
 CLAUDE_CMD="$user_cmd"
 CLAUDE_PROJECTS_DIR="$user_projects"
+REMOTE_SUDO="$user_sudo_enabled"
 SETTINGS
     chown "$USER_NAME:$USER_NAME" "$SETTINGS_FILE"
     print_success "Settings saved to $SETTINGS_FILE"

@@ -12,7 +12,8 @@
 |--------|-----|
 | Keyboard | `Alt+1` through `Alt+9` |
 | Mobile | Tap numbered buttons in tab bar (top of screen) |
-| Desktop | Click tmux tabs at bottom of terminal |
+| Desktop | Click tab buttons in floating toolbar (bottom-right) |
+| New session | Click **+ New** in desktop toolbar (or tap **+** on mobile) |
 
 ### Commands
 | Command | What It Does |
@@ -120,6 +121,9 @@ Settings are stored in `~/.config/claude-terminal/settings.conf`:
 ```bash
 CLAUDE_CMD="claude"                    # Command to launch Claude Code
 CLAUDE_PROJECTS_DIR="$HOME/projects"   # Where projects are stored
+REMOTE_SUDO="no"                       # Passwordless sudo (yes/no)
 ```
 
 Edit the file and run `source ~/.bashrc` to apply changes.
+
+**Remote sudo:** If enabled during install, sudo works without a password in the web terminal. Requires Tailscale VPN — never expose ttyd directly to the internet.

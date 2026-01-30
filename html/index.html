@@ -166,8 +166,40 @@
     background: #264f78; color: #569cd6; font-weight: bold;
   }
 
+  /* ---- Desktop floating toolbar ---- */
+  #desktop-toolbar {
+    display: none;
+    position: fixed;
+    bottom: 4px; right: 30px;
+    z-index: 9999;
+    background: rgba(37, 37, 38, 0.92);
+    border: 1px solid #3c3c3c;
+    border-radius: 6px;
+    padding: 3px 4px;
+    gap: 3px;
+    align-items: center;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  #desktop-toolbar button {
+    height: 26px; min-width: 28px;
+    background: #333; border: 1px solid #555; border-radius: 4px;
+    color: #d4d4d4; font-size: 12px; font-family: monospace;
+    cursor: pointer; padding: 0 8px;
+    white-space: nowrap;
+  }
+  #desktop-toolbar button:hover { background: #444; border-color: #666; }
+  #desktop-toolbar button:active { background: #569cd6; color: #1e1e1e; }
+  #desktop-toolbar button.accent {
+    background: #264f78; border-color: #569cd6; color: #569cd6;
+  }
+  #desktop-toolbar button.accent:hover { background: #2d5f8a; }
+  #desktop-toolbar .dtab { min-width: 24px; padding: 0 5px; }
+  #desktop-toolbar .dtab.active { background: #569cd6; color: #1e1e1e; border-color: #569cd6; }
+
   @media (max-width: 768px) {
     #terminal, #terminal * { touch-action: none; }
+    #desktop-toolbar { display: none !important; }
   }
 
   @media (min-width: 769px) {
@@ -176,6 +208,7 @@
     #custom-kb { display: none !important; }
     .kb-input { display: none; }
     #scroll-btns { display: none; }
+    #desktop-toolbar { display: flex; }
   }
 </style>
 </head>
@@ -214,6 +247,20 @@
 
   <!-- Custom QWERTY keyboard -->
   <div id="custom-kb"></div>
+</div>
+
+<div id="desktop-toolbar">
+  <button id="dt-new-session" class="accent">+ New</button>
+  <span style="width:1px;height:18px;background:#555;margin:0 2px;"></span>
+  <button class="dtab" data-dtab="1">1</button>
+  <button class="dtab" data-dtab="2">2</button>
+  <button class="dtab" data-dtab="3">3</button>
+  <button class="dtab" data-dtab="4">4</button>
+  <button class="dtab" data-dtab="5">5</button>
+  <button class="dtab" data-dtab="6">6</button>
+  <button class="dtab" data-dtab="7">7</button>
+  <button class="dtab" data-dtab="8">8</button>
+  <button class="dtab" data-dtab="9">9</button>
 </div>
 
 <div id="scroll-btns">
@@ -256,6 +303,7 @@
 
   // ---- WebSocket ----
   var ws = null;
+  var isMobile = window.innerWidth < 769;
   function sendInput(data) {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
     ws.send('0' + data);
@@ -302,6 +350,44 @@
   }
   term.onData(function(data) { sendInput(data); });
 
+  // Desktop: intercept mouse-mode enable sequences at the parser level so
+  // xterm.js never enters mouse capture mode.  This lets the browser handle
+  // clicks and text selection natively while tmux mouse mode stays "on" from
+  // tmux's perspective (it just never takes effect in the browser).
+  if (!isMobile) {
+    var mouseTrackParams = { 9:1, 1000:1, 1001:1, 1002:1, 1003:1, 1006:1, 1015:1 };
+    // CSI ? Pm h — DECSET private mode set
+    term.parser.registerCsiHandler({ prefix: '?', final: 'h' }, function(params) {
+      for (var i = 0; i < params.length; i++) {
+        if (mouseTrackParams[params[i]]) return true; // swallow — don't enable mouse mode
+      }
+      return false; // not mouse-related, let xterm.js handle it
+    });
+  }
+
+  // Desktop copy/paste: Ctrl+Shift+C/V, and Ctrl+C copies when text selected
+  if (!isMobile) {
+    term.attachCustomKeyEventHandler(function(ev) {
+      if (ev.type !== 'keydown') return true;
+      // Ctrl+Shift+C or Ctrl+C with selection → copy
+      if (ev.ctrlKey && ev.key === 'c' && term.hasSelection()) {
+        navigator.clipboard.writeText(term.getSelection());
+        term.clearSelection();
+        return false;
+      }
+      if (ev.ctrlKey && ev.shiftKey && ev.key === 'C') {
+        if (term.hasSelection()) navigator.clipboard.writeText(term.getSelection());
+        return false;
+      }
+      // Ctrl+Shift+V → paste
+      if (ev.ctrlKey && ev.shiftKey && ev.key === 'V') {
+        navigator.clipboard.readText().then(function(t) { sendInput(t); });
+        return false;
+      }
+      return true;
+    });
+  }
+
   function doFit() { fitAddon.fit(); sendResize(); }
 
   // ---- State ----
@@ -309,7 +395,6 @@
   var customKb = document.getElementById('custom-kb');
   var nokb = document.getElementById('nokb');
   var withkb = document.getElementById('withkb');
-  var isMobile = window.innerWidth < 769;
   var kbVisible = false;       // custom keyboard shown
   var iosKbMode = false;       // iOS native keyboard mode
   var shiftActive = false;
@@ -608,11 +693,17 @@
   var ctrlToggleBtn = document.getElementById('ctrl-toggle');
 
   function setupTouchBtn(btn, fn) {
+    var touchHandled = false;
     btn.addEventListener('touchstart', function(e) { e.preventDefault(); });
-    btn.addEventListener('touchend', function(e) { e.preventDefault(); fn(); });
+    btn.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      touchHandled = true;
+      fn();
+      setTimeout(function() { touchHandled = false; }, 300);
+    });
     btn.addEventListener('click', function(e) {
       e.preventDefault();
-      if (!('ontouchend' in window)) fn();
+      if (!touchHandled) fn();
     });
   }
 
@@ -713,6 +804,35 @@
   // Initialize tab 1 as active
   tab1Btn.classList.add('active');
   updateTab1Button();
+
+  // ---- Desktop toolbar ----
+  var dtNewSession = document.getElementById('dt-new-session');
+  if (dtNewSession) {
+    dtNewSession.addEventListener('click', function() {
+      // Alt+0: tmux binding that selects/creates window 1, clears, runs cl
+      sendInput('\x1b0');
+      currentTab = 1;
+      updateDesktopTabs();
+    });
+  }
+
+  function updateDesktopTabs() {
+    document.querySelectorAll('#desktop-toolbar .dtab').forEach(function(b) {
+      b.classList.toggle('active', parseInt(b.getAttribute('data-dtab'), 10) === currentTab);
+    });
+  }
+
+  document.querySelectorAll('#desktop-toolbar .dtab').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var n = btn.getAttribute('data-dtab');
+      var tabNum = parseInt(n, 10);
+      sendInput('\x1b' + n);
+      currentTab = tabNum;
+      updateDesktopTabs();
+    });
+  });
+
+  updateDesktopTabs();
 
   // Terminal tap — open iOS keyboard by default
   if (isMobile) {
@@ -885,7 +1005,7 @@
     positionScrollBtns();
   };
 
-  // ---- Start ----
+// ---- Start ----
   updateLayout();
   connect();
 })();

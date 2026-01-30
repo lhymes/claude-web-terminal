@@ -6,6 +6,7 @@ Access your Claude Code sessions from any browser — phone, tablet, or laptop. 
 
 - **Web-based** — Works from any browser, no app install needed
 - **Mobile-optimized** — iOS keyboard integration, touch toolbar, tab bar, scroll pill
+- **Desktop-friendly** — Text selection, copy/paste, floating toolbar with session launcher
 - **Installable** — Add to Home Screen for a native app experience (PWA)
 - **Secure** — All traffic encrypted through Tailscale VPN
 - **Persistent** — Sessions survive disconnects and auto-recover after reboot
@@ -103,6 +104,7 @@ sudo systemctl start claude-terminal
 The installer will prompt you to configure:
 - **Claude command** — The command to launch Claude Code (default: `claude`). Use this if you have a custom alias.
 - **Projects directory** — Where your projects live (default: `~/projects`).
+- **Remote sudo** — Optionally enable passwordless sudo for the web terminal (requires Tailscale VPN).
 
 Settings are saved to `~/.config/claude-terminal/settings.conf` and sourced via `~/.bashrc`.
 
@@ -134,9 +136,23 @@ User settings are stored in `~/.config/claude-terminal/settings.conf`:
 ```bash
 CLAUDE_CMD="claude"                    # Command to launch Claude Code
 CLAUDE_PROJECTS_DIR="$HOME/projects"   # Where projects are stored
+REMOTE_SUDO="no"                       # Passwordless sudo (yes/no)
 ```
 
 Edit this file directly to change settings. Changes take effect on next shell login (or run `source ~/.bashrc`).
+
+To enable or disable remote sudo after installation:
+
+```bash
+# Enable
+echo "$USER ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/claude-terminal
+sudo chmod 440 /etc/sudoers.d/claude-terminal
+
+# Disable
+sudo rm /etc/sudoers.d/claude-terminal
+```
+
+**Warning:** Remote sudo means anyone with access to your terminal session has root access. Only use this with Tailscale VPN — never expose ttyd directly to the internet.
 
 ## Daily Usage
 
@@ -150,7 +166,11 @@ Edit this file directly to change settings. Changes take effect on next shell lo
 
 - **Keyboard:** `Alt+1` through `Alt+9`
 - **Mobile:** Tap numbered buttons in the tab bar at the top of the screen
-- **Desktop:** Click tmux tabs at the bottom of the terminal
+- **Desktop:** Click tab buttons in the floating toolbar (bottom-right corner)
+
+### New Session (Desktop)
+
+Click the **+ New** button in the desktop toolbar to launch the project picker. This switches to tmux window 1, clears the screen, and runs `cl`. If window 1 was closed, it is recreated automatically.
 
 ### Commands
 
@@ -189,7 +209,18 @@ On mobile screens (<769px), the interface provides:
 
 **Scroll pill:** A touch-drag control on the right edge for scrolling terminal history. Drag up to scroll up, drag down to scroll down. Speed increases the further you drag from center.
 
-All mobile UI elements are hidden on desktop browsers.
+Mobile UI elements are hidden on desktop browsers. Desktop gets its own floating toolbar instead (see below).
+
+### Desktop Interface
+
+On desktop screens (769px+), the interface provides:
+
+**Native text selection and copy/paste:** Mouse mode is disabled in xterm.js so you can select text, right-click to copy/paste, and use Ctrl+Shift+C/V.
+
+**Floating toolbar (bottom-right):** A compact overlay with:
+- **+ New** button to launch the project picker (creates/switches to window 1, clears, runs `cl`)
+- Clickable tab buttons (1-9) to switch tmux windows
+- Active tab is highlighted
 
 ### Mobile Tips
 
