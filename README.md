@@ -175,9 +175,9 @@ The toolbar uses a configurable action registry — buttons dispatch semantic ac
 | Close browser | ✓ Yes |
 | Switch devices | ✓ Yes |
 | Network disconnect | ✓ Yes |
-| WSL/Windows reboot | ✗ No |
+| WSL/Windows reboot | ✓ Yes (service auto-starts, run `cl` to relaunch projects) |
 
-After a reboot, just open the browser and run `cl` to relaunch.
+The systemd service auto-starts ttyd + tmux on boot. Your session is ready — just open the browser and run `cl` to relaunch projects.
 
 ## Troubleshooting
 
