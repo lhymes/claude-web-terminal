@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#1e1e1e"/>
+  <rect x="32" y="32" width="448" height="448" rx="64" fill="#252526" stroke="#3c3c3c" stroke-width="4"/>
+  <!-- Terminal prompt -->
+  <text x="80" y="230" font-family="monospace" font-size="160" font-weight="bold" fill="#569cd6">&gt;_</text>
+  <!-- Claude accent bar -->
+  <rect x="80" y="320" width="352" height="6" rx="3" fill="#569cd6" opacity="0.6"/>
+  <!-- Subtle dots representing output -->
+  <circle cx="100" cy="370" r="6" fill="#d4d4d4" opacity="0.3"/>
+  <circle cx="130" cy="370" r="6" fill="#d4d4d4" opacity="0.3"/>
+  <circle cx="160" cy="370" r="6" fill="#d4d4d4" opacity="0.3"/>
+</svg>

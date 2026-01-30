@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Claude Terminal</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Claude">
+<meta name="theme-color" content="#1e1e1e">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -23,8 +30,6 @@
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
   }
-  #terminal, #terminal * { touch-action: none; }
-
   /* Hidden input to suppress native keyboard */
   .kb-input {
     position: fixed; left: -9999px; top: 0;
@@ -50,6 +55,7 @@
   #shortcut-bar button:active { background: #569cd6; color: #1e1e1e; }
   #shortcut-bar button.accent { background: #264f78; border-color: #569cd6; }
   #shortcut-bar button.active { background: #569cd6; color: #1e1e1e; }
+  #shortcut-bar button.dim { opacity: 0.6; font-size: 10px; }
 
   /* ---- Custom keyboard ---- */
   #custom-kb {
@@ -106,22 +112,38 @@
   }
   .kb-popup.show { display: block; }
 
-  /* Floating scroll buttons — fixed, right edge, above shortcut bar */
+  /* Scroll control — joined pill, right edge */
   #scroll-btns {
     position: fixed; right: 8px; z-index: 9999;
-    display: flex; flex-direction: column; gap: 4px;
     pointer-events: none;
   }
-  .scroll-btn {
-    width: 48px; height: 48px;
-    background: rgba(255,255,255,0.18); border: none; border-radius: 50%;
-    color: rgba(255,255,255,0.7); font-size: 20px;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
+  .scroll-pill {
+    width: 44px; height: 110px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: space-between;
+    padding: 8px 0;
     pointer-events: auto;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    overflow: hidden;
   }
-  .scroll-btn:active { background: rgba(255,255,255,0.35); }
+  .scroll-pill::after {
+    content: '';
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px; height: 1px;
+    background: rgba(255,255,255,0.2);
+  }
+  .scroll-arrow {
+    color: rgba(255,255,255,0.5);
+    font-size: 14px;
+    pointer-events: none;
+    line-height: 1;
+  }
 
   /* ---- Tab bar (tmux window switching) ---- */
   #tab-bar {
@@ -140,19 +162,27 @@
   #tab-bar button:active, #tab-bar button.active {
     background: #569cd6; color: #1e1e1e; font-weight: bold;
   }
+  #tab-bar button.accent {
+    background: #264f78; color: #569cd6; font-weight: bold;
+  }
+
+  @media (max-width: 768px) {
+    #terminal, #terminal * { touch-action: none; }
+  }
 
   @media (min-width: 769px) {
     #tab-bar { display: none; }
     #shortcut-bar { display: none; }
     #custom-kb { display: none !important; }
     .kb-input { display: none; }
+    #scroll-btns { display: none; }
   }
 </style>
 </head>
 <body>
 <div id="container">
   <div id="tab-bar">
-    <button data-tab="1">1</button>
+    <button data-tab="1" id="tab1-btn">1</button>
     <button data-tab="2">2</button>
     <button data-tab="3">3</button>
     <button data-tab="4">4</button>
@@ -173,10 +203,11 @@
   <div id="shortcut-bar">
     <button data-action="escape">Esc</button>
     <button data-action="tab">Tab</button>
-    <button data-action="interrupt">^C</button>
-    <button data-action="eof">^D</button>
-    <button data-action="up">&uarr;</button>
-    <button data-action="down">&darr;</button>
+    <button data-action="enter">&crarr;</button>
+    <button data-action="left">&larr;</button>
+    <button data-action="right">&rarr;</button>
+    <button data-action="interrupt" class="dim">^C</button>
+    <button data-action="eof" class="dim">^D</button>
     <button id="ctrl-toggle">Ctrl</button>
     <button id="kb-show" class="accent">ABC</button>
   </div>
@@ -186,8 +217,10 @@
 </div>
 
 <div id="scroll-btns">
-  <button id="scroll-up-btn" class="scroll-btn">▲</button>
-  <button id="scroll-dn-btn" class="scroll-btn">▼</button>
+  <div class="scroll-pill" id="scroll-pill">
+    <span class="scroll-arrow">&#9650;</span>
+    <span class="scroll-arrow">&#9660;</span>
+  </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
@@ -282,9 +315,17 @@
   var shiftActive = false;
   var ctrlActive = false;
   var symMode = false;         // symbols layout
+  var currentTab = 1;          // track active tmux tab
 
   // ---- Focus Management ----
-  function focusNokb() { if (isMobile) nokb.focus(); }
+  function maintainFocus() {
+    if (!isMobile) return;
+    if (iosKbMode) {
+      withkb.focus();
+    } else {
+      nokb.focus();
+    }
+  }
 
   // Forward iOS keyboard input
   function onHiddenInput(e) {
@@ -357,13 +398,13 @@
 
         switch (k) {
           case 'SHIFT':
-            btn.textContent = '⇧';
+            btn.textContent = '\u21e7';
             btn.className += ' dark wide';
             btn.dataset.special = 'shift';
             if (shiftActive) btn.classList.add('active');
             break;
           case 'BKSP':
-            btn.textContent = '⌫';
+            btn.textContent = '\u232b';
             btn.className += ' dark wide';
             btn.dataset.special = 'bksp';
             break;
@@ -394,7 +435,7 @@
             btn.dataset.char = ' ';
             break;
           case 'ENTER':
-            btn.textContent = '↵';
+            btn.textContent = '\u21b5';
             btn.className += ' dark';
             btn.style.flex = '1.2';
             btn.dataset.special = 'enter';
@@ -533,48 +574,33 @@
     else buildKeyboard(LETTERS);
   }
 
+  // ---- Keyboard show/hide ----
+  function updateKbLabel() {
+    var btn = document.getElementById('kb-show');
+    btn.textContent = (iosKbMode || kbVisible) ? '\u2715' : 'ABC';
+  }
+
   function showCustomKb() {
     kbVisible = true;
     customKb.classList.add('visible');
-    document.getElementById('kb-show').textContent = '✕';
     buildKeyboard(LETTERS);
     symMode = false; shiftActive = false; ctrlActive = false;
+    updateKbLabel();
     updateLayout();
   }
 
   function hideCustomKb() {
     kbVisible = false;
     customKb.classList.remove('visible');
-    document.getElementById('kb-show').textContent = 'ABC';
+    updateKbLabel();
     updateLayout();
   }
 
-  function toggleCustomKb() {
-    if (iosKbMode) {
-      // Switch from iOS keyboard to custom keyboard
-      iosKbMode = false;
-      nokb.focus(); // dismiss iOS keyboard
-      setTimeout(showCustomKb, 100);
-    } else if (kbVisible) {
-      hideCustomKb();
-    } else {
-      showCustomKb();
-    }
-    focusNokb();
-  }
-
-  // ---- iOS keyboard toggle (long-press ABC button) ----
-  // We keep the option but it's secondary now
-  function toggleIosKb() {
-    if (iosKbMode) {
-      iosKbMode = false;
-      nokb.focus();
-      showCustomKb();
-    } else {
-      hideCustomKb();
-      iosKbMode = true;
-      withkb.focus();
-    }
+  function dismissAllKeyboards() {
+    hideCustomKb();
+    iosKbMode = false;
+    nokb.focus();
+    updateKbLabel();
   }
 
   // ---- Shortcut Bar ----
@@ -590,24 +616,45 @@
     });
   }
 
-  // ABC button: tap = toggle custom kb, long-press = toggle iOS kb
+  // ABC/dismiss button: tap = cycle keyboards, long-press = dismiss all
   var abcLongTimer = null, abcFired = false;
   kbShowBtn.addEventListener('touchstart', function(e) {
     e.preventDefault();
     abcFired = false;
     abcLongTimer = setTimeout(function() {
       abcFired = true;
-      toggleIosKb();
+      dismissAllKeyboards();
     }, 500);
   });
   kbShowBtn.addEventListener('touchend', function(e) {
     e.preventDefault();
     if (abcLongTimer) { clearTimeout(abcLongTimer); abcLongTimer = null; }
-    if (!abcFired) toggleCustomKb();
+    if (abcFired) return;
+    if (iosKbMode) {
+      // iOS KB visible -> switch to custom KB
+      iosKbMode = false;
+      nokb.focus();
+      setTimeout(showCustomKb, 100);
+    } else if (kbVisible) {
+      // Custom KB visible -> switch to iOS KB
+      hideCustomKb();
+      iosKbMode = true;
+      withkb.focus();
+      updateKbLabel();
+    } else {
+      // No KB -> show iOS KB
+      iosKbMode = true;
+      withkb.focus();
+      updateKbLabel();
+    }
   });
   kbShowBtn.addEventListener('click', function(e) {
     e.preventDefault();
-    if (!('ontouchend' in window)) toggleCustomKb();
+    if (!('ontouchend' in window)) {
+      // Desktop: toggle custom kb
+      if (kbVisible) hideCustomKb();
+      else showCustomKb();
+    }
   });
 
   // Ctrl toggle in shortcut bar
@@ -615,6 +662,7 @@
     ctrlActive = !ctrlActive;
     ctrlToggleBtn.classList.toggle('active', ctrlActive);
     if (kbVisible) rebuildCurrent();
+    maintainFocus();
   });
 
   // Action buttons in shortcut bar
@@ -623,32 +671,63 @@
       var action = btn.getAttribute('data-action');
       var seq = ACTIONS[action];
       if (seq) sendInput(seq);
-      focusNokb();
+      maintainFocus();
     });
   });
 
-  // Tab bar — send Alt+N to switch tmux windows
+  // ---- Tab bar ----
+  var tab1Btn = document.getElementById('tab1-btn');
+
+  function updateTab1Button() {
+    if (currentTab === 1) {
+      tab1Btn.textContent = '+';
+      tab1Btn.classList.add('accent');
+    } else {
+      tab1Btn.textContent = '1';
+      tab1Btn.classList.remove('accent');
+    }
+  }
+
   document.querySelectorAll('#tab-bar [data-tab]').forEach(function(btn) {
     setupTouchBtn(btn, function() {
       var n = btn.getAttribute('data-tab');
-      sendInput('\x1b' + n);
+      var tabNum = parseInt(n, 10);
+
+      if (tabNum === 1 && currentTab === 1) {
+        // Already on tab 1 — launch project picker
+        sendInput('cl\r');
+      } else {
+        // Switch to the requested tab
+        sendInput('\x1b' + n);
+        currentTab = tabNum;
+      }
+
       // Highlight active tab
       document.querySelectorAll('#tab-bar button').forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
-      focusNokb();
+      updateTab1Button();
+      maintainFocus();
     });
   });
 
-  // Terminal tap — only focus nokb (no iOS keyboard), never withkb
+  // Initialize tab 1 as active
+  tab1Btn.classList.add('active');
+  updateTab1Button();
+
+  // Terminal tap — open iOS keyboard by default
   if (isMobile) {
     document.getElementById('terminal').addEventListener('touchend', function(e) {
       if (window.getSelection().toString()) return;
-      // Don't focus if tap was near the scroll buttons (right 60px)
+      // Don't focus if tap was near the scroll control (right 60px)
       if (e.changedTouches && e.changedTouches[0]) {
         var tx = e.changedTouches[0].clientX;
         if (tx > window.innerWidth - 60) return;
       }
-      nokb.focus();
+      if (!kbVisible) {
+        iosKbMode = true;
+        withkb.focus();
+        updateKbLabel();
+      }
     });
   }
 
@@ -719,62 +798,85 @@
     });
   })();
 
-  // Floating scroll buttons
+  // ---- Scroll pill control ----
   var scrollBtnsDiv = document.getElementById('scroll-btns');
+  var scrollPill = document.getElementById('scroll-pill');
 
   function positionScrollBtns() {
-    // Place just above the shortcut bar (or keyboard if visible)
     var bar = document.getElementById('shortcut-bar');
     var barRect = bar.getBoundingClientRect();
-    scrollBtnsDiv.style.bottom = (window.innerHeight - barRect.top + 4) + 'px';
+    scrollBtnsDiv.style.bottom = (window.innerHeight - barRect.top + 8) + 'px';
   }
 
-  function setupScrollBtn(id, lines) {
-    var btn = document.getElementById(id);
-    var interval = null;
+  (function setupScrollPill() {
+    var active = false;
+    var scrollInterval = null;
+    var scrollSpeed = 0;
+
+    function getSpeed(clientY) {
+      var rect = scrollPill.getBoundingClientRect();
+      var relY = Math.max(0, Math.min(rect.height, clientY - rect.top));
+      var pct = (relY / rect.height - 0.5) * 2; // -1 to 1
+      // Dead zone in center
+      if (Math.abs(pct) < 0.15) return 0;
+      return pct;
+    }
+
     function doScroll() {
-      // Try xterm scrollLines first, fall back to sending Page Up/Down
+      if (scrollSpeed === 0) return;
+      var lines = Math.round(scrollSpeed * 8);
       try { term.scrollLines(lines); } catch(e) {}
-      // Also dispatch wheel event to xterm's viewport
       var vp = document.querySelector('.xterm-viewport');
       if (vp) {
         vp.dispatchEvent(new WheelEvent('wheel', {
-          deltaY: lines * 30,
-          deltaMode: 0,
-          bubbles: true
+          deltaY: lines * 30, deltaMode: 0, bubbles: true
         }));
       }
     }
 
-    btn.addEventListener('touchstart', function(e) {
+    scrollPill.addEventListener('touchstart', function(e) {
       e.preventDefault();
       e.stopPropagation();
+      active = true;
+      scrollSpeed = getSpeed(e.touches[0].clientY);
       doScroll();
-      interval = setInterval(doScroll, 120);
+      scrollInterval = setInterval(doScroll, 80);
     });
-    btn.addEventListener('touchend', function(e) {
+
+    scrollPill.addEventListener('touchmove', function(e) {
       e.preventDefault();
       e.stopPropagation();
-      if (interval) { clearInterval(interval); interval = null; }
+      if (active) scrollSpeed = getSpeed(e.touches[0].clientY);
     });
-    btn.addEventListener('touchcancel', function() {
-      if (interval) { clearInterval(interval); interval = null; }
+
+    function stopScroll() {
+      active = false;
+      scrollSpeed = 0;
+      if (scrollInterval) { clearInterval(scrollInterval); scrollInterval = null; }
+    }
+
+    scrollPill.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      stopScroll();
     });
+    scrollPill.addEventListener('touchcancel', stopScroll);
+
     // Desktop fallback
-    btn.addEventListener('mousedown', function(e) {
+    scrollPill.addEventListener('mousedown', function(e) {
       e.preventDefault();
+      active = true;
+      scrollSpeed = getSpeed(e.clientY);
       doScroll();
-      interval = setInterval(doScroll, 120);
+      scrollInterval = setInterval(doScroll, 80);
     });
-    btn.addEventListener('mouseup', function() {
-      if (interval) { clearInterval(interval); interval = null; }
+    document.addEventListener('mousemove', function(e) {
+      if (active) scrollSpeed = getSpeed(e.clientY);
     });
-    btn.addEventListener('mouseleave', function() {
-      if (interval) { clearInterval(interval); interval = null; }
+    document.addEventListener('mouseup', function() {
+      if (active) stopScroll();
     });
-  }
-  setupScrollBtn('scroll-up-btn', -5);
-  setupScrollBtn('scroll-dn-btn', 5);
+  })();
 
   // Reposition on layout changes
   var origUpdateLayout = updateLayout;
