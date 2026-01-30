@@ -4,11 +4,11 @@ Access your Claude Code sessions from any browser — phone, tablet, or laptop. 
 
 ## Features
 
-- 🌐 **Web-based** — Works from any browser, no app install needed
-- 📱 **Mobile-friendly** — Touch-optimized, tap tabs to switch sessions
-- 🔒 **Secure** — All traffic encrypted through Tailscale
-- 💾 **Persistent** — Sessions survive disconnects
-- 🚀 **Multi-project** — Run multiple Claude sessions in tabs
+- **Web-based** — Works from any browser, no app install needed
+- **Mobile-friendly** — Custom keyboard, tab bar, and touch-optimized UI
+- **Secure** — All traffic encrypted through Tailscale VPN
+- **Persistent** — Sessions survive disconnects and auto-recover after reboot
+- **Multi-project** — Run multiple Claude sessions in tmux windows
 
 ## Prerequisites
 
@@ -16,7 +16,7 @@ Complete these steps **before** running the installer.
 
 ### 1. Windows Subsystem for Linux (WSL)
 
-You need Ubuntu running in WSL (20.04, 22.04, or 24.04). If you don't have it yet:
+You need Ubuntu running in WSL2 (20.04, 22.04, or 24.04). If you don't have it yet:
 
 ```powershell
 # Run in PowerShell as Administrator
@@ -24,6 +24,16 @@ wsl --install -d Ubuntu
 ```
 
 Restart your machine when prompted, then open Ubuntu from the Start menu to finish setup.
+
+Verify systemd is enabled in `/etc/wsl.conf`:
+
+```ini
+[boot]
+systemd=true
+
+[user]
+default=your-username
+```
 
 ### 2. Claude Code in WSL
 
@@ -40,111 +50,105 @@ npm install -g @anthropic-ai/claude-code
 
 Run `claude` once to authenticate and confirm it's working before proceeding.
 
-### 3. Projects folder
+### 3. Dependencies
 
-All your projects must live in `~/projects` inside WSL. The launcher scans this folder to find your projects.
+```bash
+sudo apt-get install -y tmux fzf
+```
+
+ttyd must also be installed. Check if it's available:
+
+```bash
+ttyd --version   # Need 1.7.4+
+```
+
+If not installed, build from source or install from your package manager. See [ttyd releases](https://github.com/tsl0922/ttyd/releases).
+
+### 4. Projects folder
+
+The launcher scans `~/projects` to find your projects:
 
 ```bash
 mkdir -p ~/projects
-```
-
-Move or clone your project repositories into this folder:
-
-```bash
 cd ~/projects
 git clone https://github.com/your-org/your-repo.git
 ```
 
-### 4. Tailscale setup (all devices)
+### 5. Tailscale (for remote access)
 
-Tailscale creates a private encrypted network between your devices. You need it installed and authenticated on **every device** you want to access the terminal from.
+Tailscale creates a private encrypted network between your devices.
 
-**On your WSL host (required):**
+**On your WSL host:**
 
 ```bash
-# Install Tailscale in WSL
 curl -fsSL https://tailscale.com/install.sh | sh
-
-# Authenticate — this opens a browser link to sign in
 sudo tailscale up
 ```
 
-**On every other device (phone, tablet, laptop, etc.):**
+**On every other device (phone, tablet, laptop):**
 
 1. Download [Tailscale](https://tailscale.com/download) for your platform
-2. Install and open the app
-3. Sign in with the **same account** you used in WSL
-4. Verify the device appears in your tailnet (`tailscale status` in WSL)
-
-All devices must be on the same Tailscale account to reach each other.
+2. Sign in with the **same account** you used in WSL
+3. Verify connectivity: `tailscale status`
 
 ## Install
 
-Once all prerequisites are complete:
-
 ```bash
-# Extract
-tar -xzf claude-terminal-setup.tar.gz
-cd claude-terminal-setup
+# Clone the repo
+git clone https://github.com/lhymes/claude-web-terminal.git
+cd claude-web-terminal
 
-# Install base
-sudo ./install.sh
+# Run the installer (sets up tmux config, systemd service, launcher scripts, healthcheck)
+sudo ./install-local.sh
 
-# Install launcher tools
-cd extras
-sudo ./install-extras.sh
-source ~/.bashrc
-
-# Expose the terminal over Tailscale
+# Expose over Tailscale (for remote access)
 tailscale serve --bg 7681
 
-# Start
-claude-terminal-start
+# Start the service
+sudo systemctl start claude-terminal
 ```
 
-Open `http://localhost:7681` (local) or your Tailscale URL (remote) — you're ready!
+Open `http://localhost:7681` (local) or your Tailscale URL (remote).
 
 ## Configuration
 
-The default settings expect your projects in `~/projects` and use `claude` as the launch command. To change these, edit `~/.bashrc`:
+The launcher scripts use environment variables. Add to `~/.bashrc`:
 
 ```bash
 export CLAUDE_PROJECTS_DIR="$HOME/projects"  # Default: ~/projects
-export CLAUDE_CMD="claude"                    # Change to your alias if needed (e.g., ccc)
+export CLAUDE_CMD="claude"                    # Default: ccc (change to your alias)
 ```
 
 ## Daily Usage
 
 ### Launch Projects
 
-1. Open `http://localhost:7681`
-2. You land in the **launcher** tab
-3. Type `cl`
-4. Select projects (Tab for multi-select)
-5. Press Enter
+1. Open `http://localhost:7681` (or your Tailscale URL)
+2. Type `cl` in the terminal
+3. Select projects with arrow keys, **Tab** to multi-select, **Enter** to launch
 
 ### Switch Between Sessions
 
 - **Keyboard:** `Alt+1` through `Alt+9`
-- **Mobile:** Tap numbered buttons in the tab bar at the top
+- **Mobile:** Tap numbered buttons in the tab bar at the top of the screen
 - **Desktop:** Click tmux tabs at the bottom of the terminal
 
 ### Commands
 
 | Command | Description |
 |---------|-------------|
-| `cl` | Interactive project picker |
-| `clp ProjectName` | Quick-launch specific project |
-| `cnew ProjectName` | Create new project + launch |
-| `cls` | Check service status |
-| `tj` | Attach to tmux from terminal |
+| `cl` | Interactive project picker (fzf) |
+| `clp <project>` | Quick-launch specific project |
+| `cnew <project>` | Create new project + launch |
+| `cls` | Check service status and active sessions |
+| `tj` | Attach to tmux session from another terminal |
 
 ## Mobile Setup
 
 1. Install **Tailscale** app on your phone
 2. Sign in to your tailnet
 3. Open your terminal URL (get it with `tailscale serve status`)
-4. Safari: Share → Add to Home Screen
+4. Safari: Share > Add to Home Screen
 5. Tap the icon to launch — works like a native app
 
 ### Mobile Interface
@@ -155,7 +159,7 @@ On mobile screens (<769px), the interface provides:
 
 **Shortcut bar (bottom):** Quick access to Esc, Tab, ^C, ^D, arrow keys, Ctrl toggle, and keyboard toggle.
 
-**Custom QWERTY keyboard:** Tap "ABC" to open a compact on-screen keyboard (~196px) with:
+**Custom QWERTY keyboard:** Tap "ABC" to open a compact on-screen keyboard with:
 - Full QWERTY layout with number row
 - Shift and Ctrl sticky modifiers
 - Long-press any letter for its symbol (shown as hints)
@@ -178,59 +182,16 @@ All mobile UI elements are hidden on desktop browsers.
 
 | Event | Sessions Survive? |
 |-------|-------------------|
-| Close browser | ✓ Yes |
-| Switch devices | ✓ Yes |
-| Network disconnect | ✓ Yes |
-| WSL/Windows reboot | ✓ Yes (service auto-starts, run `cl` to relaunch projects) |
+| Close browser | Yes |
+| Switch devices | Yes |
+| Network disconnect | Yes |
+| WSL/Windows reboot | Service auto-starts; run `cl` to relaunch projects |
 
-The systemd service auto-starts ttyd + tmux on boot. Your session is ready — just open the browser and run `cl` to relaunch projects.
-
-## Troubleshooting
-
-### Service won't start
-```bash
-cls                                    # Check status
-sudo journalctl -u claude-terminal -n 30  # View logs
-```
-
-### Stale session
-```bash
-tmux kill-session -t claude
-sudo systemctl restart claude-terminal
-```
-
-### Port in use
-```bash
-sudo lsof -i :7681                    # Find what's using it
-sudo kill <PID>                        # Kill it
-sudo systemctl restart claude-terminal
-```
-
-### Can't connect remotely
-```bash
-tailscale status      # Is Tailscale running?
-tailscale serve status  # Is serve configured?
-```
-
-## Architecture
-
-```
-Browser (any device)
-       ↓
-Tailscale (encrypted)
-       ↓
-ttyd (web terminal, port 7681)
-       ↓
-tmux (session "claude")
-       ↓
-Multiple windows with Claude Code
-```
-
-All devices connect to the same tmux session — you see identical state everywhere.
+The systemd service auto-starts ttyd + tmux on boot. A healthcheck timer runs every 30 seconds to restart the service if ttyd dies.
 
 ## Upgrading from Zellij Version
 
-If you previously installed the Zellij-based version, use the upgrade script:
+If you previously installed the Zellij-based version:
 
 ```bash
 # See what's installed (no changes)
@@ -243,27 +204,62 @@ sudo ./upgrade.sh
 sudo ./upgrade.sh --clean
 ```
 
-The upgrade preserves your projects in `~/projects`. It removes Zellij config, cache, sessions, and old systemd services, then installs the tmux-based version.
+The upgrade preserves your projects in `~/projects`.
 
-## Uninstall
+## Troubleshooting
 
+### Service won't start
 ```bash
-sudo ./uninstall.sh
+cls                                       # Check status
+sudo journalctl -u claude-terminal -n 30  # View logs
 ```
+
+### Stale session
+```bash
+tmux kill-session -t claude
+sudo systemctl restart claude-terminal
+```
+
+### Port in use
+```bash
+sudo lsof -i :7681
+sudo kill <PID>
+sudo systemctl restart claude-terminal
+```
+
+### Can't connect remotely
+```bash
+tailscale status        # Is Tailscale running?
+tailscale serve status  # Is serve configured?
+```
+
+## Architecture
+
+```
+Browser (any device)
+       |
+Tailscale VPN (encrypted)
+       |
+ttyd (web terminal server, port 7681)
+       |
+tmux session "claude" (multiplexed windows)
+       |
+Claude Code CLI (per-project windows)
+```
+
+All devices connect to the same tmux session — you see identical state everywhere.
 
 ## Files
 
 ```
-claude-terminal-setup/
-├── install.sh           # Main installer
+claude-web-terminal/
+├── html/index.html      # Custom ttyd frontend (xterm.js + custom keyboard + tab bar)
+├── install-local.sh     # Installer (tmux config, systemd service, launcher scripts, healthcheck)
 ├── upgrade.sh           # Upgrade from Zellij or reinstall
-├── uninstall.sh         # Removal script
-├── QUICK-REFERENCE.md   # Printable cheat sheet
 ├── README.md            # This file
-├── html/
-│   └── index.html       # Custom ttyd frontend with mobile toolbar
-└── extras/
-    └── install-extras.sh  # Launcher tools
+├── QUICK-REFERENCE.md   # Printable cheat sheet
+├── LICENSE              # MIT
+└── .github/workflows/   # CI
 ```
 
 ## Author
@@ -274,9 +270,10 @@ Created by **Larry Hymes** — [Hymes Consulting](https://www.hymesconsulting.co
 
 - [ttyd](https://github.com/tsl0922/ttyd) — Terminal over web
 - [tmux](https://github.com/tmux/tmux) — Terminal multiplexer
+- [xterm.js](https://xtermjs.org/) — Browser-side terminal emulator
 - [Tailscale](https://tailscale.com/) — Secure networking
 - [fzf](https://github.com/junegunn/fzf) — Fuzzy finder
 
 ## License
 
-MIT — Use it, share it, modify it.
+MIT

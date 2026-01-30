@@ -21,6 +21,7 @@
 | `clp ProjectName` | Quick-launch one project |
 | `cnew ProjectName` | Create + launch new project |
 | `cls` | Check service status |
+| `tj` | Attach to tmux from another terminal |
 
 ---
 
@@ -91,23 +92,19 @@ Get your Tailscale URL: `tailscale serve status`
 ## First-Time Setup
 
 ```bash
-# 1. Extract and install
-tar -xzf claude-terminal-setup.tar.gz
-cd claude-terminal-setup
-sudo ./install.sh
+# 1. Clone and install
+git clone https://github.com/lhymes/claude-web-terminal.git
+cd claude-web-terminal
+sudo ./install-local.sh
 
-# 2. Install launcher tools
-cd extras && sudo ./install-extras.sh
-source ~/.bashrc
-
-# 3. Setup Tailscale
+# 2. Setup Tailscale (for remote access)
 sudo tailscale up
 tailscale serve --bg 7681
 
-# 4. Start terminal
-claude-terminal-start
+# 3. Start the service
+sudo systemctl start claude-terminal
 
-# 5. Open http://localhost:7681
+# 4. Open http://localhost:7681
 ```
 
 ---
