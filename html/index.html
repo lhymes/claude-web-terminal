@@ -2,139 +2,181 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Claude Terminal</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { height: 100dvh; height: 100%; background: #1e1e1e; overflow: hidden; }
+  html, body {
+    height: 100%; background: #1e1e1e; overflow: hidden;
+    position: fixed; width: 100%;
+  }
+
+  #container {
+    display: flex; flex-direction: column;
+    height: 100%; width: 100%;
+    overflow: hidden;
+  }
+
   #terminal {
-    height: 100dvh; height: 100%; width: 100%;
-    touch-action: manipulation;
+    flex: 1; min-height: 0; width: 100%;
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
   }
+  #terminal, #terminal * { touch-action: none; }
 
-  /* Toolbar: three states via classes on #toolbar */
-  /* .collapsed = handle only, .compact = handle + primary, (default) = all rows */
-  #toolbar {
-    position: fixed; bottom: 0; left: 0; right: 0;
+  /* Hidden input to suppress native keyboard */
+  .kb-input {
+    position: fixed; left: -9999px; top: 0;
+    opacity: 0; width: 1px; height: 1px;
+    font-size: 16px;
+  }
+
+  /* ---- Shortcut bar (always visible on mobile) ---- */
+  #shortcut-bar {
+    flex: none;
+    display: flex; flex-wrap: nowrap;
+    padding: 2px 3px; gap: 3px;
     background: #252526; border-top: 1px solid #3c3c3c;
-    z-index: 10; transition: transform 0.2s ease;
-    padding-bottom: env(safe-area-inset-bottom);
   }
-  #toolbar.collapsed { transform: translateY(calc(100% - 28px)); }
-  #toolbar.compact .ext-row { display: none; }
-
-  #toolbar-handle {
-    display: flex; align-items: center; justify-content: center;
-    width: 100%; height: 28px;
-    background: #2d2d2d; border: none; border-bottom: 1px solid #3c3c3c;
-    color: #808080; font-size: 12px; cursor: pointer;
-    touch-action: manipulation; gap: 8px;
-  }
-  #toolbar-handle:active { background: #3c3c3c; }
-  #toolbar-handle .grip {
-    width: 32px; height: 4px; border-radius: 2px;
-    background: #555;
-  }
-
-  .btn-row {
-    display: flex; flex-wrap: nowrap; padding: 4px 3px;
-    gap: 4px;
-  }
-  .btn-row button {
-    flex: 1 1 0; min-width: 40px; height: 44px;
-    background: #333; border: 1px solid #555; border-radius: 6px;
-    color: #d4d4d4; font-size: 13px; font-family: monospace;
+  #shortcut-bar button {
+    flex: 1 1 0; min-width: 32px; height: 34px;
+    background: #333; border: 1px solid #555; border-radius: 5px;
+    color: #d4d4d4; font-size: 12px; font-family: monospace;
     cursor: pointer; touch-action: manipulation;
     white-space: nowrap; padding: 0 2px;
     -webkit-tap-highlight-color: transparent;
   }
-  .btn-row button:active { background: #569cd6; color: #1e1e1e; }
-  .btn-row button.accent {
-    background: #264f78; border-color: #569cd6;
+  #shortcut-bar button:active { background: #569cd6; color: #1e1e1e; }
+  #shortcut-bar button.accent { background: #264f78; border-color: #569cd6; }
+  #shortcut-bar button.active { background: #569cd6; color: #1e1e1e; }
+
+  /* ---- Custom keyboard ---- */
+  #custom-kb {
+    flex: none;
+    background: #2c2c2e;
+    padding: 3px 2px;
+    display: none;
+    -webkit-user-select: none; user-select: none;
   }
-  .btn-row button.accent:active { background: #569cd6; }
+  #custom-kb.visible { display: block; }
+
+  .kb-row {
+    display: flex; justify-content: center;
+    gap: 3px; margin-bottom: 3px;
+    padding: 0 1px;
+  }
+  .kb-row:last-child { margin-bottom: 0; }
+
+  .kb-key {
+    height: 36px; min-width: 28px; flex: 1 1 0;
+    border: none; border-radius: 5px;
+    background: #636366; color: #fff;
+    font-family: -apple-system, system-ui, monospace;
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    cursor: pointer; padding: 0;
+    position: relative;
+  }
+  .kb-key:active { background: #8e8e93; }
+  .kb-key.dark { background: #48484a; font-size: 13px; }
+  .kb-key.wide { flex: 1.4; }
+  .kb-key.space { flex: 4; }
+  .kb-key.active { background: #569cd6; color: #1e1e1e; }
+
+  .kb-num-row .kb-key { height: 28px; font-size: 14px; }
+
+  /* Long-press hint */
+  .kb-key .lp-hint {
+    position: absolute; top: 2px; right: 3px;
+    font-size: 8px; color: #999; pointer-events: none;
+  }
+
+  /* Long-press popup */
+  .kb-popup {
+    display: none; position: absolute;
+    bottom: 100%; left: 50%; transform: translateX(-50%);
+    background: #569cd6; color: #1e1e1e;
+    font-size: 20px; font-weight: bold;
+    padding: 4px 12px; border-radius: 6px;
+    white-space: nowrap; z-index: 100;
+    pointer-events: none;
+  }
+  .kb-popup.show { display: block; }
+
+  /* Floating scroll buttons — fixed, right edge, above shortcut bar */
+  #scroll-btns {
+    position: fixed; right: 8px; z-index: 9999;
+    display: flex; flex-direction: column; gap: 4px;
+    pointer-events: none;
+  }
+  .scroll-btn {
+    width: 48px; height: 48px;
+    background: rgba(255,255,255,0.18); border: none; border-radius: 50%;
+    color: rgba(255,255,255,0.7); font-size: 20px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    pointer-events: auto;
+  }
+  .scroll-btn:active { background: rgba(255,255,255,0.35); }
 
   @media (min-width: 769px) {
-    #toolbar { display: none; }
+    #shortcut-bar { display: none; }
+    #custom-kb { display: none !important; }
+    .kb-input { display: none; }
   }
 </style>
 </head>
 <body>
-<div id="terminal"></div>
-<div id="toolbar" class="collapsed">
-  <button id="toolbar-handle"><span class="grip"></span></button>
-  <!-- Primary row: essentials always visible in compact mode -->
-  <div class="btn-row" id="primary-row">
+<div id="container">
+  <div id="terminal"></div>
+  <input id="nokb" class="kb-input" inputmode="none"
+    autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+  <input id="withkb" class="kb-input" inputmode="text"
+    autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+    enterkeyhint="send">
+
+  <!-- Shortcut bar: terminal special keys -->
+  <div id="shortcut-bar">
     <button data-action="escape">Esc</button>
-    <button data-action="interrupt">^C</button>
     <button data-action="tab">Tab</button>
+    <button data-action="interrupt">^C</button>
+    <button data-action="eof">^D</button>
     <button data-action="up">&uarr;</button>
     <button data-action="down">&darr;</button>
-    <button data-action="left">&larr;</button>
-    <button data-action="right">&rarr;</button>
-    <button data-action="enter" class="accent">&#x23ce;</button>
+    <button id="ctrl-toggle">Ctrl</button>
+    <button id="kb-show" class="accent">ABC</button>
   </div>
-  <!-- Extended rows: visible only in full mode -->
-  <div class="btn-row ext-row">
-    <button data-action="window-1">1</button>
-    <button data-action="window-2">2</button>
-    <button data-action="window-3">3</button>
-    <button data-action="window-4">4</button>
-    <button data-action="window-5">5</button>
-    <button data-action="window-6">6</button>
-    <button data-action="window-7">7</button>
-    <button data-action="window-8">8</button>
-    <button data-action="window-9">9</button>
-  </div>
-  <div class="btn-row ext-row">
-    <button data-action="eof">^D</button>
-    <button data-action="clear">^L</button>
-    <button data-action="cmd-exit">/exit</button>
-    <button data-action="cmd-help">/help</button>
-  </div>
+
+  <!-- Custom QWERTY keyboard -->
+  <div id="custom-kb"></div>
 </div>
 
+<div id="scroll-btns">
+  <button id="scroll-up-btn" class="scroll-btn">▲</button>
+  <button id="scroll-dn-btn" class="scroll-btn">▼</button>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
 <script>
 (function() {
-  // ---- Action Registry ----
-  // Semantic action names mapped to terminal sequences.
-  // To customize, modify this object — no HTML changes needed.
+  // ---- Terminal Actions (shortcut bar) ----
   var ACTIONS = {
-    'escape':    '\x1b',
-    'interrupt': '\x03',
-    'eof':       '\x04',
-    'tab':       '\x09',
-    'enter':     '\r',
-    'clear':     '\x0c',
-    'up':        '\x1b[A',
-    'down':      '\x1b[B',
-    'left':      '\x1b[D',
-    'right':     '\x1b[C',
-    'window-1':  '\x1b1',
-    'window-2':  '\x1b2',
-    'window-3':  '\x1b3',
-    'window-4':  '\x1b4',
-    'window-5':  '\x1b5',
-    'window-6':  '\x1b6',
-    'window-7':  '\x1b7',
-    'window-8':  '\x1b8',
-    'window-9':  '\x1b9',
-    'cmd-exit':  '/exit\r',
-    'cmd-help':  '/help\r'
+    'escape':  '\x1b', 'interrupt': '\x03', 'eof': '\x04',
+    'tab':     '\x09', 'enter':     '\r',   'clear': '\x0c',
+    'up':      '\x1b[A', 'down':  '\x1b[B',
+    'left':    '\x1b[D', 'right': '\x1b[C'
   };
 
   // ---- Responsive Font Size ----
-  // Smaller fonts on narrow screens to maximize usable columns
   function getResponsiveFontSize() {
     var w = window.innerWidth;
-    if (w <= 360) return 11;   // iPhone SE (320px): ~42 cols
-    if (w <= 428) return 12;   // Most phones (375-428px): ~44 cols
-    return 14;                 // Tablets and desktop
+    if (w <= 360) return 11;
+    if (w <= 428) return 12;
+    return 14;
   }
 
   // ---- Terminal Setup ----
@@ -150,172 +192,557 @@
   term.open(document.getElementById('terminal'));
 
   // ---- WebSocket ----
-  // ttyd binary protocol: first byte = command type
-  //   Send: 0 = terminal input, 1 = resize (JSON {columns, rows})
-  //   Recv: 0 = terminal output, 1 = set window title
   var ws = null;
-
-  function textEncoder(str) {
-    return new TextEncoder().encode(str);
-  }
-
   function sendInput(data) {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    var encoded = typeof data === 'string' ? textEncoder(data) : data;
-    var payload = new Uint8Array(encoded.length + 1);
-    payload[0] = 0;
-    payload.set(encoded, 1);
-    ws.send(payload);
+    ws.send('0' + data);
   }
-
   function sendResize() {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    var json = JSON.stringify({ columns: term.cols, rows: term.rows });
-    var encoded = textEncoder(json);
-    var payload = new Uint8Array(encoded.length + 1);
-    payload[0] = 1;
-    payload.set(encoded, 1);
-    ws.send(payload);
+    ws.send('1' + JSON.stringify({ columns: term.cols, rows: term.rows }));
   }
-
   function connect() {
+    if (ws) {
+      ws.onclose = null; ws.onerror = null;
+      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) ws.close();
+      ws = null;
+    }
     var protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    var url = protocol + '//' + location.host + '/ws';
-    ws = new WebSocket(url, ['tty']);
-    ws.binaryType = 'arraybuffer';
-
-    ws.onopen = function() {
+    var sock = new WebSocket(protocol + '//' + location.host + '/ws', ['tty']);
+    sock.binaryType = 'arraybuffer';
+    sock.onopen = function() {
+      ws = sock;
       fitAddon.fit();
-      var authMsg = JSON.stringify({
-        AuthToken: '',
-        columns: term.cols,
-        rows: term.rows
-      });
-      var encoded = textEncoder(authMsg);
-      var payload = new Uint8Array(encoded.length + 1);
-      payload[0] = 0;
-      payload.set(encoded, 1);
-      ws.send(payload);
+      ws.send(JSON.stringify({ AuthToken: '', columns: term.cols, rows: term.rows }));
     };
-
-    ws.onmessage = function(ev) {
-      if (typeof ev.data === 'string') return;
-      var data = new Uint8Array(ev.data);
-      var cmd = data[0];
-      var body = data.subarray(1);
-      switch (cmd) {
-        case 0: term.write(body); break;
-        case 1: document.title = new TextDecoder().decode(body); break;
+    sock.onmessage = function(ev) {
+      if (typeof ev.data === 'string') {
+        var cmd = ev.data[0], body = ev.data.substring(1);
+        switch (cmd) {
+          case '0': term.write(body); break;
+          case '1': document.title = body; break;
+        }
+      } else {
+        var d = new Uint8Array(ev.data), cmd = String.fromCharCode(d[0]), body = d.subarray(1);
+        switch (cmd) {
+          case '0': term.write(body); break;
+          case '1': document.title = new TextDecoder().decode(body); break;
+        }
       }
     };
-
-    ws.onclose = function() {
+    sock.onclose = function() {
+      ws = null;
       term.write('\r\n\x1b[33mConnection closed. Reconnecting...\x1b[0m\r\n');
       setTimeout(connect, 2000);
     };
-
-    ws.onerror = function() { ws.close(); };
+    sock.onerror = function() { sock.close(); };
   }
-
   term.onData(function(data) { sendInput(data); });
 
-  // ---- Resize Handling ----
-  function doFit() {
-    fitAddon.fit();
-    sendResize();
+  function doFit() { fitAddon.fit(); sendResize(); }
+
+  // ---- State ----
+  var container = document.getElementById('container');
+  var customKb = document.getElementById('custom-kb');
+  var nokb = document.getElementById('nokb');
+  var withkb = document.getElementById('withkb');
+  var isMobile = window.innerWidth < 769;
+  var kbVisible = false;       // custom keyboard shown
+  var iosKbMode = false;       // iOS native keyboard mode
+  var shiftActive = false;
+  var ctrlActive = false;
+  var symMode = false;         // symbols layout
+
+  // ---- Focus Management ----
+  function focusNokb() { if (isMobile) nokb.focus(); }
+
+  // Forward iOS keyboard input
+  function onHiddenInput(e) {
+    var val = e.target.value;
+    if (val) { sendInput(val); e.target.value = ''; }
   }
-
-  // ---- Toolbar: Three-State Toggle ----
-  // States: collapsed (handle only) → compact (primary row) → full (all rows)
-  var toolbar = document.getElementById('toolbar');
-  var handle = document.getElementById('toolbar-handle');
-  var toolbarState = 'collapsed'; // collapsed | compact | full
-
-  function setToolbarState(state) {
-    toolbarState = state;
-    toolbar.className = (state === 'collapsed') ? 'collapsed' :
-                        (state === 'compact')   ? 'compact' : '';
-    adjustHeight();
-  }
-
-  handle.addEventListener('click', function() {
-    if (toolbarState === 'collapsed') setToolbarState('compact');
-    else if (toolbarState === 'compact') setToolbarState('full');
-    else setToolbarState('collapsed');
+  nokb.addEventListener('input', onHiddenInput);
+  withkb.addEventListener('input', onHiddenInput);
+  withkb.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); sendInput('\r'); }
   });
 
-  // ---- Action Dispatch ----
-  document.querySelectorAll('[data-action]').forEach(function(btn) {
+  // ---- Custom Keyboard ----
+  // Layout definitions
+  var LETTERS = [
+    { keys: '1234567890', cls: 'kb-num-row' },
+    { keys: 'qwertyuiop' },
+    { keys: 'asdfghjkl', inset: true },
+    { keys: '_SHIFT_zxcvbnm_BKSP_', inset: false },
+    { keys: '_SYM__CTRL__SLASH__SPACE__DOT__DASH__ENTER_', inset: false }
+  ];
+  var SYMBOLS = [
+    { keys: '!@#$%^&*()', cls: 'kb-num-row' },
+    { keys: '~`_+=|\\{}:' },
+    { keys: '"\';<>[]?', inset: true },
+    { keys: '_ABC_zxcvbnm_BKSP_', inset: false },
+    { keys: '_SYM2__CTRL__SLASH__SPACE__DOT__DASH__ENTER_', inset: false }
+  ];
+  var SYMBOLS2 = [
+    { keys: '1234567890', cls: 'kb-num-row' },
+    { keys: '!@#$%^&*()', inset: false },
+    { keys: '~`_+=|\\{}', inset: false },
+    { keys: '_ABC_:<>[]?;_BKSP_', inset: false },
+    { keys: '_SYM__CTRL__SLASH__SPACE__DOT__DASH__ENTER_', inset: false }
+  ];
+
+  // Long-press symbol mappings for letter keys
+  var LP_MAP = {
+    'q':'!','w':'@','e':'#','r':'$','t':'%','y':'^','u':'&','i':'*','o':'(','p':')',
+    'a':'~','s':'`','d':'_','f':'+','g':'=','h':'|','j':'\\','k':'{','l':'}',
+    'z':'"','x':"'",'c':';','v':'<','b':'>','n':'[','m':']'
+  };
+
+  function buildKeyboard(layout) {
+    customKb.innerHTML = '';
+    layout.forEach(function(rowDef) {
+      var row = document.createElement('div');
+      row.className = 'kb-row' + (rowDef.cls ? ' ' + rowDef.cls : '');
+
+      // Parse keys - special keys wrapped in underscores
+      var keys = [];
+      var i = 0, str = rowDef.keys;
+      while (i < str.length) {
+        if (str[i] === '_') {
+          var end = str.indexOf('_', i + 1);
+          if (end !== -1) {
+            keys.push(str.substring(i + 1, end));
+            i = end + 1;
+          } else {
+            keys.push(str[i]); i++;
+          }
+        } else {
+          keys.push(str[i]); i++;
+        }
+      }
+
+      keys.forEach(function(k) {
+        var btn = document.createElement('button');
+        btn.className = 'kb-key';
+
+        switch (k) {
+          case 'SHIFT':
+            btn.textContent = '⇧';
+            btn.className += ' dark wide';
+            btn.dataset.special = 'shift';
+            if (shiftActive) btn.classList.add('active');
+            break;
+          case 'BKSP':
+            btn.textContent = '⌫';
+            btn.className += ' dark wide';
+            btn.dataset.special = 'bksp';
+            break;
+          case 'SYM':
+            btn.textContent = '#+=';
+            btn.className += ' dark wide';
+            btn.dataset.special = 'sym';
+            break;
+          case 'SYM2':
+            btn.textContent = '123';
+            btn.className += ' dark wide';
+            btn.dataset.special = 'sym2';
+            break;
+          case 'ABC':
+            btn.textContent = 'ABC';
+            btn.className += ' dark wide';
+            btn.dataset.special = 'abc';
+            break;
+          case 'CTRL':
+            btn.textContent = 'Ctrl';
+            btn.className += ' dark';
+            btn.dataset.special = 'ctrl';
+            if (ctrlActive) btn.classList.add('active');
+            break;
+          case 'SPACE':
+            btn.textContent = ' ';
+            btn.className += ' space';
+            btn.dataset.char = ' ';
+            break;
+          case 'ENTER':
+            btn.textContent = '↵';
+            btn.className += ' dark';
+            btn.style.flex = '1.2';
+            btn.dataset.special = 'enter';
+            break;
+          case 'SLASH':
+            btn.textContent = '/';
+            btn.dataset.char = '/';
+            break;
+          case 'DOT':
+            btn.textContent = '.';
+            btn.dataset.char = '.';
+            break;
+          case 'DASH':
+            btn.textContent = '-';
+            btn.dataset.char = '-';
+            break;
+          default:
+            // Regular character key
+            var display = (shiftActive && k.length === 1 && k >= 'a' && k <= 'z') ? k.toUpperCase() : k;
+            btn.textContent = display;
+            btn.dataset.char = k;
+            // Add long-press hint for letter keys
+            if (LP_MAP[k] && !symMode) {
+              var hint = document.createElement('span');
+              hint.className = 'lp-hint';
+              hint.textContent = LP_MAP[k];
+              btn.appendChild(hint);
+            }
+            break;
+        }
+
+        row.appendChild(btn);
+      });
+
+      customKb.appendChild(row);
+    });
+
+    // Wire up touch events
+    customKb.querySelectorAll('.kb-key').forEach(function(btn) {
+      var longTimer = null;
+      var fired = false;
+      var popup = null;
+
+      btn.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        fired = false;
+        var ch = btn.dataset.char;
+
+        // Long-press for symbol hint
+        if (ch && LP_MAP[ch.toLowerCase()] && !symMode) {
+          longTimer = setTimeout(function() {
+            fired = true;
+            var sym = LP_MAP[ch.toLowerCase()];
+            sendInput(sym);
+            // Show popup
+            popup = document.createElement('div');
+            popup.className = 'kb-popup show';
+            popup.textContent = sym;
+            btn.appendChild(popup);
+            setTimeout(function() {
+              if (popup && popup.parentNode) popup.parentNode.removeChild(popup);
+              popup = null;
+            }, 400);
+          }, 300);
+        }
+      });
+
+      btn.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        if (longTimer) { clearTimeout(longTimer); longTimer = null; }
+        if (fired) return;
+
+        var ch = btn.dataset.char;
+        var sp = btn.dataset.special;
+
+        if (ch) {
+          var out = ch;
+          if (shiftActive && ch.length === 1 && ch >= 'a' && ch <= 'z') {
+            out = ch.toUpperCase();
+          }
+          if (ctrlActive && out.length === 1) {
+            // Ctrl+letter: send control character
+            var code = out.toUpperCase().charCodeAt(0) - 64;
+            if (code >= 0 && code <= 31) {
+              sendInput(String.fromCharCode(code));
+            }
+            ctrlActive = false;
+            rebuildCurrent();
+            return;
+          }
+          sendInput(out);
+          if (shiftActive) {
+            shiftActive = false;
+            rebuildCurrent();
+          }
+        } else if (sp) {
+          switch (sp) {
+            case 'shift':
+              shiftActive = !shiftActive;
+              rebuildCurrent();
+              break;
+            case 'bksp':
+              sendInput('\x7f');
+              break;
+            case 'enter':
+              sendInput('\r');
+              break;
+            case 'ctrl':
+              ctrlActive = !ctrlActive;
+              rebuildCurrent();
+              break;
+            case 'sym':
+              symMode = true;
+              buildKeyboard(SYMBOLS);
+              break;
+            case 'sym2':
+              symMode = true;
+              buildKeyboard(SYMBOLS2);
+              break;
+            case 'abc':
+              symMode = false;
+              buildKeyboard(LETTERS);
+              break;
+          }
+        }
+      });
+
+      btn.addEventListener('touchcancel', function() {
+        if (longTimer) { clearTimeout(longTimer); longTimer = null; }
+      });
+    });
+  }
+
+  function rebuildCurrent() {
+    if (symMode) buildKeyboard(SYMBOLS);
+    else buildKeyboard(LETTERS);
+  }
+
+  function showCustomKb() {
+    kbVisible = true;
+    customKb.classList.add('visible');
+    document.getElementById('kb-show').textContent = '✕';
+    buildKeyboard(LETTERS);
+    symMode = false; shiftActive = false; ctrlActive = false;
+    updateLayout();
+  }
+
+  function hideCustomKb() {
+    kbVisible = false;
+    customKb.classList.remove('visible');
+    document.getElementById('kb-show').textContent = 'ABC';
+    updateLayout();
+  }
+
+  function toggleCustomKb() {
+    if (iosKbMode) {
+      // Switch from iOS keyboard to custom keyboard
+      iosKbMode = false;
+      nokb.focus(); // dismiss iOS keyboard
+      setTimeout(showCustomKb, 100);
+    } else if (kbVisible) {
+      hideCustomKb();
+    } else {
+      showCustomKb();
+    }
+    focusNokb();
+  }
+
+  // ---- iOS keyboard toggle (long-press ABC button) ----
+  // We keep the option but it's secondary now
+  function toggleIosKb() {
+    if (iosKbMode) {
+      iosKbMode = false;
+      nokb.focus();
+      showCustomKb();
+    } else {
+      hideCustomKb();
+      iosKbMode = true;
+      withkb.focus();
+    }
+  }
+
+  // ---- Shortcut Bar ----
+  var kbShowBtn = document.getElementById('kb-show');
+  var ctrlToggleBtn = document.getElementById('ctrl-toggle');
+
+  function setupTouchBtn(btn, fn) {
+    btn.addEventListener('touchstart', function(e) { e.preventDefault(); });
+    btn.addEventListener('touchend', function(e) { e.preventDefault(); fn(); });
     btn.addEventListener('click', function(e) {
       e.preventDefault();
-      var action = btn.getAttribute('data-action');
-      var seq = ACTIONS[action];
-      if (seq) {
-        sendInput(seq);
-        term.focus();
-      }
+      if (!('ontouchend' in window)) fn();
     });
-    btn.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+  }
+
+  // ABC button: tap = toggle custom kb, long-press = toggle iOS kb
+  var abcLongTimer = null, abcFired = false;
+  kbShowBtn.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    abcFired = false;
+    abcLongTimer = setTimeout(function() {
+      abcFired = true;
+      toggleIosKb();
+    }, 500);
+  });
+  kbShowBtn.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    if (abcLongTimer) { clearTimeout(abcLongTimer); abcLongTimer = null; }
+    if (!abcFired) toggleCustomKb();
+  });
+  kbShowBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    if (!('ontouchend' in window)) toggleCustomKb();
   });
 
-  // ---- Height Adjustment ----
-  function adjustHeight() {
-    var termEl = document.getElementById('terminal');
-    if (window.innerWidth >= 769) {
-      termEl.style.height = '100%';
-    } else {
-      var tbHeight;
-      if (toolbarState === 'collapsed') {
-        tbHeight = 28;
-      } else {
-        tbHeight = toolbar.offsetHeight;
+  // Ctrl toggle in shortcut bar
+  setupTouchBtn(ctrlToggleBtn, function() {
+    ctrlActive = !ctrlActive;
+    ctrlToggleBtn.classList.toggle('active', ctrlActive);
+    if (kbVisible) rebuildCurrent();
+  });
+
+  // Action buttons in shortcut bar
+  document.querySelectorAll('#shortcut-bar [data-action]').forEach(function(btn) {
+    setupTouchBtn(btn, function() {
+      var action = btn.getAttribute('data-action');
+      var seq = ACTIONS[action];
+      if (seq) sendInput(seq);
+      focusNokb();
+    });
+  });
+
+  // Terminal tap — only focus nokb (no iOS keyboard), never withkb
+  if (isMobile) {
+    document.getElementById('terminal').addEventListener('touchend', function(e) {
+      if (window.getSelection().toString()) return;
+      // Don't focus if tap was near the scroll buttons (right 60px)
+      if (e.changedTouches && e.changedTouches[0]) {
+        var tx = e.changedTouches[0].clientX;
+        if (tx > window.innerWidth - 60) return;
       }
-      termEl.style.height = 'calc(100% - ' + tbHeight + 'px)';
-    }
+      nokb.focus();
+    });
+  }
+
+  // ---- Layout ----
+  function updateLayout() {
+    var h = (window.visualViewport) ? window.visualViewport.height : window.innerHeight;
+    container.style.height = h + 'px';
     doFit();
   }
 
-  // ---- Unified Resize Handler ----
-  // Single debounced handler replaces multiple resize listeners.
-  // Handles: terminal fit, toolbar height, font size, orientation.
-  var resizeTimer;
-  var lastWidth = window.innerWidth;
+  var resizeTimer, lastWidth = window.innerWidth;
   window.addEventListener('resize', function() {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function() {
-      // Update font size if width changed (orientation change)
       var w = window.innerWidth;
       if (w !== lastWidth) {
         lastWidth = w;
+        isMobile = w < 769;
         var newSize = getResponsiveFontSize();
-        if (term.options.fontSize !== newSize) {
-          term.options.fontSize = newSize;
-        }
-        // Auto-collapse in landscape (wider than tall)
-        if (w > window.innerHeight && toolbarState !== 'collapsed') {
-          setToolbarState('collapsed');
-        }
+        if (term.options.fontSize !== newSize) term.options.fontSize = newSize;
       }
-      adjustHeight();
+      updateLayout();
     }, 50);
   });
 
-  // iOS Safari: position:fixed breaks when soft keyboard opens.
-  // Use visualViewport API to reposition toolbar above keyboard.
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', function() {
-      var vv = window.visualViewport;
-      toolbar.style.bottom = (window.innerHeight - vv.height - vv.offsetTop) + 'px';
-      adjustHeight();
-    });
-    window.visualViewport.addEventListener('scroll', function() {
-      var vv = window.visualViewport;
-      toolbar.style.bottom = (window.innerHeight - vv.height - vv.offsetTop) + 'px';
+      updateLayout();
     });
   }
 
+  // Prevent iOS viewport scrolling
+  document.addEventListener('touchmove', function(e) {
+    e.preventDefault();
+  }, { passive: false });
+
+  // Two-finger swipe on terminal area scrolls buffer
+  (function() {
+    var termEl = document.getElementById('terminal');
+    var startY = null, accum = 0, scrolling = false;
+
+    termEl.addEventListener('touchstart', function(e) {
+      if (e.touches.length === 2) {
+        scrolling = true;
+        startY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        accum = 0;
+      }
+    }, { passive: true });
+
+    termEl.addEventListener('touchmove', function(e) {
+      if (scrolling && e.touches.length === 2) {
+        var y = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        accum += (startY - y);
+        startY = y;
+        var lines = Math.trunc(accum / 15);
+        if (lines !== 0) {
+          term.scrollLines(lines);
+          accum -= lines * 15;
+        }
+      }
+    }, { passive: true });
+
+    termEl.addEventListener('touchend', function() {
+      scrolling = false; startY = null; accum = 0;
+    });
+    termEl.addEventListener('touchcancel', function() {
+      scrolling = false; startY = null; accum = 0;
+    });
+  })();
+
+  // Floating scroll buttons
+  var scrollBtnsDiv = document.getElementById('scroll-btns');
+
+  function positionScrollBtns() {
+    // Place just above the shortcut bar (or keyboard if visible)
+    var bar = document.getElementById('shortcut-bar');
+    var barRect = bar.getBoundingClientRect();
+    scrollBtnsDiv.style.bottom = (window.innerHeight - barRect.top + 4) + 'px';
+  }
+
+  function setupScrollBtn(id, lines) {
+    var btn = document.getElementById(id);
+    var interval = null;
+    function doScroll() {
+      // Try xterm scrollLines first, fall back to sending Page Up/Down
+      try { term.scrollLines(lines); } catch(e) {}
+      // Also dispatch wheel event to xterm's viewport
+      var vp = document.querySelector('.xterm-viewport');
+      if (vp) {
+        vp.dispatchEvent(new WheelEvent('wheel', {
+          deltaY: lines * 30,
+          deltaMode: 0,
+          bubbles: true
+        }));
+      }
+    }
+
+    btn.addEventListener('touchstart', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      doScroll();
+      interval = setInterval(doScroll, 120);
+    });
+    btn.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (interval) { clearInterval(interval); interval = null; }
+    });
+    btn.addEventListener('touchcancel', function() {
+      if (interval) { clearInterval(interval); interval = null; }
+    });
+    // Desktop fallback
+    btn.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      doScroll();
+      interval = setInterval(doScroll, 120);
+    });
+    btn.addEventListener('mouseup', function() {
+      if (interval) { clearInterval(interval); interval = null; }
+    });
+    btn.addEventListener('mouseleave', function() {
+      if (interval) { clearInterval(interval); interval = null; }
+    });
+  }
+  setupScrollBtn('scroll-up-btn', -5);
+  setupScrollBtn('scroll-dn-btn', 5);
+
+  // Reposition on layout changes
+  var origUpdateLayout = updateLayout;
+  updateLayout = function() {
+    origUpdateLayout();
+    positionScrollBtns();
+  };
+
   // ---- Start ----
-  adjustHeight();
+  updateLayout();
   connect();
 })();
 </script>
