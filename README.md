@@ -74,52 +74,21 @@ On screens 769px and wider, the mobile UI is hidden and replaced with a desktop-
 
 ## Quick Install
 
-### macOS
+### Step 1: Tailscale (Required)
 
-```bash
-# Install dependencies
-brew install ttyd tmux fzf
+**Do not proceed without setting up Tailscale first.** Tailscale creates the private encrypted network that makes your terminal accessible from any device. Without it, the terminal is only available on `localhost`.
 
-# Install Claude Code (if not already installed)
-brew install --cask claude-code
+Install Tailscale on **your host machine** and on **every device** you want to access the terminal from (phone, tablet, other laptops):
 
-# Clone and install
-git clone https://github.com/lhymes/claude-web-terminal.git
-cd claude-web-terminal
-./install-mac.sh
+- **Linux / WSL:** `curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up`
+- **macOS:** Download from [tailscale.com/download](https://tailscale.com/download)
+- **iOS / Android:** Install from the App Store or Play Store
 
-# Start the service
-launchctl load ~/Library/LaunchAgents/com.claude-terminal.ttyd.plist
+**Sign in with the same Tailscale account on every device.** Verify with `tailscale status`.
 
-# Expose over Tailscale (for remote access)
-tailscale serve --bg 7681
-```
+### Step 2: Install (choose your platform)
 
-> macOS support is in testing. Please [report any issues](https://github.com/lhymes/claude-web-terminal/issues) for quick resolution.
-
-### Linux (Ubuntu/Debian)
-
-```bash
-# Install dependencies
-sudo apt-get install -y tmux fzf
-# ttyd: install from https://github.com/tsl0922/ttyd/releases (need 1.7.4+)
-
-# Install Claude Code
-curl -fsSL https://claude.ai/install.sh | sh
-
-# Clone and install
-git clone https://github.com/lhymes/claude-web-terminal.git
-cd claude-web-terminal
-sudo ./install-local.sh
-
-# Start the service
-sudo systemctl start claude-terminal
-
-# Expose over Tailscale (for remote access)
-tailscale serve --bg 7681
-```
-
-### Windows (WSL2)
+#### Windows (WSL2)
 
 ```powershell
 # In PowerShell as Administrator (if WSL not installed)
@@ -145,26 +114,57 @@ git clone https://github.com/lhymes/claude-web-terminal.git
 cd claude-web-terminal
 sudo ./install-local.sh
 
-# Start the service
+# Start and expose
 sudo systemctl start claude-terminal
-
-# Expose over Tailscale (for remote access)
 tailscale serve --bg 7681
 ```
 
-### Tailscale (all platforms)
-
-Tailscale creates a private encrypted network between your devices. Install it on both your host machine and every device you want to access from.
+#### Linux (Ubuntu/Debian)
 
 ```bash
-# Install Tailscale (Linux/WSL)
-curl -fsSL https://tailscale.com/install.sh | sh
-sudo tailscale up
+# Install dependencies
+sudo apt-get install -y tmux fzf
+# ttyd: install from https://github.com/tsl0922/ttyd/releases (need 1.7.4+)
 
-# macOS: download from https://tailscale.com/download
-# iOS/Android: install from App Store / Play Store
-# Sign in with the same account on every device
+# Install Claude Code
+curl -fsSL https://claude.ai/install.sh | sh
+
+# Clone and install
+git clone https://github.com/lhymes/claude-web-terminal.git
+cd claude-web-terminal
+sudo ./install-local.sh
+
+# Start and expose
+sudo systemctl start claude-terminal
+tailscale serve --bg 7681
 ```
+
+#### macOS
+
+```bash
+# Install dependencies
+brew install ttyd tmux fzf
+
+# Install Claude Code (if not already installed)
+brew install --cask claude-code
+
+# Clone and install
+git clone https://github.com/lhymes/claude-web-terminal.git
+cd claude-web-terminal
+./install-mac.sh
+
+# Start and expose
+launchctl load ~/Library/LaunchAgents/com.claude-terminal.ttyd.plist
+tailscale serve --bg 7681
+```
+
+> macOS support is in testing. Please [report any issues](https://github.com/lhymes/claude-web-terminal/issues) for quick resolution.
+
+### Step 3: Open
+
+Open `http://localhost:7681` (local) or your Tailscale URL (remote). Get your URL with `tailscale serve status`.
+
+On your phone: open the URL in Safari/Chrome, then **Add to Home Screen** for a native app experience.
 
 ### Installer Options
 
@@ -174,8 +174,6 @@ All installers prompt you to configure:
 - **Remote sudo** — Optionally enable passwordless sudo (see Security section)
 
 Settings are saved to `~/.config/claude-terminal/settings.conf`.
-
-Open `http://localhost:7681` (local) or your Tailscale URL (remote).
 
 ## Upgrading
 
