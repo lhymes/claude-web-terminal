@@ -1,5 +1,7 @@
 # Claude Code Web Terminal
 
+![Claude Code Web Terminal](hero.jpg)
+
 Run Claude Code from any device — your phone, tablet, or any laptop — through a purpose-built terminal interface that works entirely in the browser. No app to install, no SSH client to configure, no compromises on usability.
 
 Start a Claude session from your desk, continue it from your phone on the couch, then pick it up on your laptop. Every device shares the same live session. Disconnects don't lose your work — sessions persist through network changes, browser closes, and even reboots.
