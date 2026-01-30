@@ -809,10 +809,14 @@
   var dtNewSession = document.getElementById('dt-new-session');
   if (dtNewSession) {
     dtNewSession.addEventListener('click', function() {
-      // Alt+0: tmux binding that selects/creates window 1, clears, runs cl
-      sendInput('\x1b0');
+      // Alt+1 to switch to window 1, then clear screen and launch project picker
+      sendInput('\x1b1');
       currentTab = 1;
       updateDesktopTabs();
+      setTimeout(function() {
+        sendInput('\x0c');  // Ctrl+L: clear screen
+        setTimeout(function() { sendInput('cl\r'); }, 100);
+      }, 150);
     });
   }
 

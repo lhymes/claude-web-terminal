@@ -18,6 +18,25 @@ print_info()    { echo -e "${CYAN}[i]${NC} $1"; }
 print_warn()    { echo -e "${YELLOW}[!]${NC} $1"; }
 print_error()   { echo -e "${RED}[✗]${NC} $1"; }
 
+prompt_remote_sudo() {
+    echo ""
+    echo -e "${YELLOW}── Remote Sudo Access ──${NC}"
+    echo "Enable passwordless sudo for the web terminal?"
+    echo ""
+    echo -e "  ${RED}WARNING:${NC} Anyone with terminal access gets root access."
+    echo "  ONLY access through Tailscale VPN. NEVER expose ttyd directly."
+    echo "  Device security (screen lock, passwords) is your last defense."
+    echo ""
+    read -p "Enable remote sudo? [y/N]: " user_sudo < /dev/tty
+    if [[ "$user_sudo" == "y" || "$user_sudo" == "Y" ]]; then
+        echo "$USER_NAME ALL=(ALL) NOPASSWD: ALL" > "/etc/sudoers.d/claude-terminal"
+        chmod 440 "/etc/sudoers.d/claude-terminal"
+        print_success "Passwordless sudo enabled for $USER_NAME"
+        return 0
+    fi
+    return 1
+}
+
 BASHRC_START="# --- claude-terminal-config-start ---"
 BASHRC_END="# --- claude-terminal-config-end ---"
 MARKER_FILE="/usr/local/share/claude-terminal/.installed"
@@ -171,10 +190,6 @@ setw -g window-status-current-style "bg=#569cd6,fg=#1e1e1e,bold"
 setw -g window-status-style "bg=#2d2d2d,fg=#d4d4d4"
 setw -g window-status-separator ""
 
-# Alt+0: new session launcher (select/create window 1, clear, run cl)
-bind -n M-0 if-shell "tmux select-window -t :1" "" "new-window -t :1" \; \
-  send-keys C-l \; send-keys "cl" Enter
-
 # Reduce escape delay for responsive feel
 set -sg escape-time 10
 TMUX_CONFIG
@@ -291,9 +306,14 @@ echo -e "${CYAN}Launching...${NC}"
 
 for project in $selected; do
     echo -e "  ${GREEN}→${NC} $project"
-    tmux new-window -t claude -n "$project"
-    sleep 0.3
-    tmux send-keys -t "claude:$project" "cd $PROJECTS_DIR/$project && $CLAUDE_CMD" Enter
+    # Switch to existing window if project is already open, otherwise create new
+    if tmux list-windows -t claude -F '#W' 2>/dev/null | grep -qx "$project"; then
+        tmux select-window -t "claude:$project"
+    else
+        tmux new-window -a -t claude -n "$project"
+        sleep 0.3
+        tmux send-keys -t "claude:$project" "cd $PROJECTS_DIR/$project && $CLAUDE_CMD" Enter
+    fi
     sleep 0.2
 done
 
@@ -334,11 +354,15 @@ if [ -z "$TMUX" ]; then
     exec tmux new-session -A -s claude
 fi
 
-tmux new-window -t claude -n "$PROJECT"
-sleep 0.3
-tmux send-keys -t "claude:$PROJECT" "cd $PROJECT_PATH && $CLAUDE_CMD" Enter
-
-echo "Launched: $PROJECT"
+if tmux list-windows -t claude -F '#W' 2>/dev/null | grep -qx "$PROJECT"; then
+    tmux select-window -t "claude:$PROJECT"
+    echo "Switched to: $PROJECT"
+else
+    tmux new-window -a -t claude -n "$PROJECT"
+    sleep 0.3
+    tmux send-keys -t "claude:$PROJECT" "cd $PROJECT_PATH && $CLAUDE_CMD" Enter
+    echo "Launched: $PROJECT"
+fi
 CLP
 chmod +x /usr/local/bin/clp
 print_success "clp updated"
@@ -483,60 +507,62 @@ touch "$MARKER_FILE"
 # ============================================================================
 # USER SETTINGS (fresh install only)
 # ============================================================================
+# Load existing settings as defaults (if upgrading)
+user_cmd="claude"
+user_projects="$USER_HOME/projects"
+user_sudo_enabled="no"
+if [[ -f "$SETTINGS_FILE" ]]; then
+    source "$SETTINGS_FILE"
+    user_cmd="${CLAUDE_CMD:-claude}"
+    user_projects="${CLAUDE_PROJECTS_DIR:-$USER_HOME/projects}"
+    user_sudo_enabled="${REMOTE_SUDO:-no}"
+fi
+
+CONFIGURE_SETTINGS=true
 if [[ "$IS_UPGRADE" == true ]]; then
     echo ""
-    print_info "Existing user settings preserved"
-    print_info "  Config: $SETTINGS_FILE"
-else
+    print_info "Current settings:"
+    echo "  Claude command:    $user_cmd"
+    echo "  Projects directory: $user_projects"
+    echo "  Remote sudo:       $user_sudo_enabled"
+    echo ""
+    read -p "Change any settings? [y/N]: " change_settings < /dev/tty
+    [[ "$change_settings" != "y" && "$change_settings" != "Y" ]] && CONFIGURE_SETTINGS=false
+fi
+
+if [[ "$CONFIGURE_SETTINGS" == true ]]; then
     echo ""
     echo -e "${CYAN}── User Configuration ──${NC}"
     echo ""
-
-    # Prompt for Claude command
-    echo "Claude Code is launched with 'claude' by default."
-    read -p "Custom command or alias? [claude]: " user_cmd < /dev/tty
-    user_cmd="${user_cmd:-claude}"
-
-    # Prompt for projects directory
+    echo "Claude Code launch command (current: $user_cmd)"
+    read -p "Command [$user_cmd]: " new_cmd < /dev/tty
+    user_cmd="${new_cmd:-$user_cmd}"
     echo ""
-    echo "Projects are stored in ~/projects by default."
-    read -p "Projects directory? [$USER_HOME/projects]: " user_projects < /dev/tty
-    user_projects="${user_projects:-$USER_HOME/projects}"
-    # Expand ~ if used
+    echo "Projects directory (current: $user_projects)"
+    read -p "Directory [$user_projects]: " new_projects < /dev/tty
+    user_projects="${new_projects:-$user_projects}"
     user_projects="${user_projects/#\~/$USER_HOME}"
 
-    # Create projects dir if it doesn't exist
     if [[ ! -d "$user_projects" ]]; then
         sudo -u "$USER_NAME" mkdir -p "$user_projects"
         print_success "Created projects directory: $user_projects"
     fi
 
-    # Prompt for remote sudo access
-    echo ""
-    echo -e "${YELLOW}── Remote Sudo Access ──${NC}"
-    echo ""
-    echo "This allows running sudo commands without a password in the"
-    echo "web terminal. This is convenient but carries serious risk:"
-    echo ""
-    echo -e "  ${RED}WARNING:${NC}"
-    echo "  - Anyone with access to your terminal session has root access"
-    echo "  - You MUST only access this terminal through Tailscale VPN"
-    echo "  - NEVER expose ttyd directly to the internet or local network"
-    echo "  - Your device security (screen lock, passwords) is your last"
-    echo "    line of defense — treat it seriously"
-    echo ""
-    read -p "Enable remote sudo? [y/N]: " user_sudo < /dev/tty
-    user_sudo_enabled="no"
-    if [[ "$user_sudo" == "y" || "$user_sudo" == "Y" ]]; then
+    if prompt_remote_sudo; then
         user_sudo_enabled="yes"
-        echo "$USER_NAME ALL=(ALL) NOPASSWD: ALL" > "/etc/sudoers.d/claude-terminal"
-        chmod 440 "/etc/sudoers.d/claude-terminal"
-        print_success "Passwordless sudo enabled for $USER_NAME"
+    else
+        # If was enabled and user declined, remove sudoers
+        if [[ "$user_sudo_enabled" == "yes" ]]; then
+            rm -f /etc/sudoers.d/claude-terminal
+            print_info "Remote sudo disabled"
+        fi
+        user_sudo_enabled="no"
     fi
+fi
 
-    # Write settings file
-    sudo -u "$USER_NAME" mkdir -p "$CONFIG_DIR"
-    cat > "$SETTINGS_FILE" << SETTINGS
+# Write settings file
+sudo -u "$USER_NAME" mkdir -p "$CONFIG_DIR"
+cat > "$SETTINGS_FILE" << SETTINGS
 # Claude Code Web Terminal — User Settings
 # Edit these values to customize your setup.
 # Changes take effect on next shell login.
@@ -544,12 +570,12 @@ CLAUDE_CMD="$user_cmd"
 CLAUDE_PROJECTS_DIR="$user_projects"
 REMOTE_SUDO="$user_sudo_enabled"
 SETTINGS
-    chown "$USER_NAME:$USER_NAME" "$SETTINGS_FILE"
-    print_success "Settings saved to $SETTINGS_FILE"
+chown "$USER_NAME:$USER_NAME" "$SETTINGS_FILE"
+print_success "Settings saved to $SETTINGS_FILE"
 
-    # Add bashrc block (if not already present)
-    if ! grep -qF "$BASHRC_START" "$USER_HOME/.bashrc" 2>/dev/null; then
-        cat >> "$USER_HOME/.bashrc" << 'BASHRC_BLOCK'
+# Add bashrc block (if not already present)
+if ! grep -qF "$BASHRC_START" "$USER_HOME/.bashrc" 2>/dev/null; then
+    cat >> "$USER_HOME/.bashrc" << 'BASHRC_BLOCK'
 
 # --- claude-terminal-config-start ---
 if [ -f "$HOME/.config/claude-terminal/settings.conf" ]; then
@@ -560,10 +586,9 @@ export CLAUDE_PROJECTS_DIR="${CLAUDE_PROJECTS_DIR:-$HOME/projects}"
 alias cl='claude-launcher'
 # --- claude-terminal-config-end ---
 BASHRC_BLOCK
-        print_success "Shell aliases added to .bashrc"
-    else
-        print_info "Shell aliases already present in .bashrc"
-    fi
+    print_success "Shell aliases added to .bashrc"
+else
+    print_info "Shell aliases already present in .bashrc"
 fi
 
 # ---- Done ----
