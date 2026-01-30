@@ -71,9 +71,10 @@ On screens 769px and wider, the mobile UI is hidden and replaced with a desktop-
 **Copy/paste shortcuts** — Ctrl+Shift+C and Ctrl+Shift+V for clipboard operations. Ctrl+C also copies when text is selected (sends interrupt only when nothing is selected). These work in Select mode.
 
 **Floating toolbar** — A compact overlay in the bottom-right corner with:
-- **+ New** button to launch the project picker (switches to window 1, clears the screen, runs `cl`)
-- **Scroll / Select** toggle to switch between scroll-wheel navigation and text selection
+- **Mode: Select / Scroll** toggle to switch between text selection and scroll-wheel navigation
+- **Tab: + New** button to launch the project picker (switches to window 1, clears the screen, runs `cl`)
 - Clickable tab buttons (1-9) to switch tmux windows with active tab highlighting
+- **Collapse arrow** to minimize the toolbar to three small buttons: previous tab, next tab, and mode toggle — useful when tmux tab names overlap the toolbar
 
 **Responsive font sizing** — Terminal font scales based on viewport width for consistent readability across screen sizes.
 

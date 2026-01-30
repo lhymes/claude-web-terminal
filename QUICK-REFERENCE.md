@@ -71,7 +71,8 @@
 | **Scroll mode** | Click **Scroll** in toolbar — enables scroll wheel through terminal history |
 | **Copy** | Ctrl+Shift+C, or Ctrl+C when text is selected |
 | **Paste** | Ctrl+Shift+V |
-| **Floating toolbar** | Bottom-right: **+ New**, **Scroll/Select** toggle, and tab buttons (1-9) |
+| **Floating toolbar** | Bottom-right: Mode toggle, **+ New**, tab buttons (1-9), collapse arrow |
+| **Collapsed toolbar** | Three mini buttons: ◀ prev tab, ▶ next tab, S/M mode toggle |
 
 ---
 

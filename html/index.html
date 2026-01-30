@@ -196,6 +196,7 @@
   #desktop-toolbar button.accent:hover { background: #2d5f8a; }
   #desktop-toolbar .dtab { min-width: 24px; padding: 0 5px; }
   #desktop-toolbar .dtab.active { background: #569cd6; color: #1e1e1e; border-color: #569cd6; }
+  #dt-content { display: inline-flex; align-items: center; gap: 3px; }
 
   @media (max-width: 768px) {
     #terminal, #terminal * { touch-action: none; }
@@ -250,19 +251,28 @@
 </div>
 
 <div id="desktop-toolbar">
-  <button id="dt-new-session" class="accent">+ New</button>
-  <span style="width:1px;height:18px;background:#555;margin:0 2px;"></span>
-  <button id="dt-mouse-toggle" title="Toggle between scroll wheel and text selection">Scroll</button>
-  <span style="width:1px;height:18px;background:#555;margin:0 2px;"></span>
-  <button class="dtab" data-dtab="1">1</button>
-  <button class="dtab" data-dtab="2">2</button>
-  <button class="dtab" data-dtab="3">3</button>
-  <button class="dtab" data-dtab="4">4</button>
-  <button class="dtab" data-dtab="5">5</button>
-  <button class="dtab" data-dtab="6">6</button>
-  <button class="dtab" data-dtab="7">7</button>
-  <button class="dtab" data-dtab="8">8</button>
-  <button class="dtab" data-dtab="9">9</button>
+  <button id="dt-collapse" title="Collapse toolbar" style="padding:0 4px;font-size:14px;line-height:26px;">&#x25B6;</button>
+  <span id="dt-mini" style="display:none;align-items:center;gap:3px;">
+    <button id="dt-mini-prev" title="Previous tab" style="min-width:24px;padding:0 4px;">&#x25C0;</button>
+    <button id="dt-mini-next" title="Next tab" style="min-width:24px;padding:0 4px;">&#x25B6;</button>
+    <button id="dt-mini-mode" class="accent" title="Toggle mode" style="min-width:24px;padding:0 4px;">S</button>
+  </span>
+  <span id="dt-content">
+    <span style="color:#888;font-size:11px;font-family:monospace;margin-right:2px;">Mode:</span>
+    <button id="dt-mouse-toggle" class="accent" title="Toggle between scroll wheel and text selection">Select</button>
+    <span style="width:1px;height:18px;background:#555;margin:0 2px;"></span>
+    <span style="color:#888;font-size:11px;font-family:monospace;margin-right:2px;">Tab:</span>
+    <button id="dt-new-session" class="accent">+ New</button>
+    <button class="dtab" data-dtab="1">1</button>
+    <button class="dtab" data-dtab="2">2</button>
+    <button class="dtab" data-dtab="3">3</button>
+    <button class="dtab" data-dtab="4">4</button>
+    <button class="dtab" data-dtab="5">5</button>
+    <button class="dtab" data-dtab="6">6</button>
+    <button class="dtab" data-dtab="7">7</button>
+    <button class="dtab" data-dtab="8">8</button>
+    <button class="dtab" data-dtab="9">9</button>
+  </span>
 </div>
 
 <div id="scroll-btns">
@@ -369,8 +379,8 @@
     var dtMouseBtn = document.getElementById('dt-mouse-toggle');
     dtMouseBtn.addEventListener('click', function() {
       desktopMouseMode = !desktopMouseMode;
-      dtMouseBtn.textContent = desktopMouseMode ? 'Select' : 'Scroll';
-      dtMouseBtn.classList.toggle('accent', desktopMouseMode);
+      dtMouseBtn.textContent = desktopMouseMode ? 'Scroll' : 'Select';
+      dtMouseBtn.classList.toggle('accent', !desktopMouseMode);
       if (desktopMouseMode) {
         // Re-enable mouse tracking in xterm.js by writing enable sequences
         term.write('\x1b[?1000h\x1b[?1006h');
@@ -821,6 +831,45 @@
   // Initialize tab 1 as active
   tab1Btn.classList.add('active');
   updateTab1Button();
+
+  // ---- Desktop toolbar collapse ----
+  var dtCollapse = document.getElementById('dt-collapse');
+  var dtContent = document.getElementById('dt-content');
+  var dtMini = document.getElementById('dt-mini');
+  if (dtCollapse && dtContent && dtMini) {
+    var dtCollapsed = false;
+    dtCollapse.addEventListener('click', function() {
+      dtCollapsed = !dtCollapsed;
+      dtContent.style.display = dtCollapsed ? 'none' : '';
+      dtMini.style.display = dtCollapsed ? 'inline-flex' : 'none';
+      dtCollapse.innerHTML = dtCollapsed ? '&#x25C0;' : '&#x25B6;';
+      dtCollapse.title = dtCollapsed ? 'Expand toolbar' : 'Collapse toolbar';
+    });
+
+    var dtMiniPrev = document.getElementById('dt-mini-prev');
+    var dtMiniNext = document.getElementById('dt-mini-next');
+    var dtMiniMode = document.getElementById('dt-mini-mode');
+
+    dtMiniPrev.addEventListener('click', function() {
+      var prev = currentTab > 1 ? currentTab - 1 : 9;
+      sendInput('\x1b' + prev);
+      currentTab = prev;
+      updateDesktopTabs();
+      term.focus();
+    });
+    dtMiniNext.addEventListener('click', function() {
+      var next = currentTab < 9 ? currentTab + 1 : 1;
+      sendInput('\x1b' + next);
+      currentTab = next;
+      updateDesktopTabs();
+      term.focus();
+    });
+    dtMiniMode.addEventListener('click', function() {
+      document.getElementById('dt-mouse-toggle').click();
+      dtMiniMode.textContent = desktopMouseMode ? 'M' : 'S';
+      dtMiniMode.classList.toggle('accent', !desktopMouseMode);
+    });
+  }
 
   // ---- Desktop toolbar ----
   var dtNewSession = document.getElementById('dt-new-session');
