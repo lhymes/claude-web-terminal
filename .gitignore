@@ -5,7 +5,6 @@ CLAUDE.md
 *.claude
 
 # Local-only files
-install-local.sh
 PROMPT-LOG.md
 
 # IDE
