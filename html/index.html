@@ -123,7 +123,26 @@
   }
   .scroll-btn:active { background: rgba(255,255,255,0.35); }
 
+  /* ---- Tab bar (tmux window switching) ---- */
+  #tab-bar {
+    flex: none;
+    display: flex; flex-wrap: nowrap;
+    padding: 2px 3px; gap: 2px;
+    background: #1e1e1e; border-bottom: 1px solid #3c3c3c;
+  }
+  #tab-bar button {
+    flex: 1 1 0; height: 28px;
+    background: #2d2d2d; border: none; border-radius: 4px;
+    color: #d4d4d4; font-size: 13px; font-family: monospace;
+    cursor: pointer; touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #tab-bar button:active, #tab-bar button.active {
+    background: #569cd6; color: #1e1e1e; font-weight: bold;
+  }
+
   @media (min-width: 769px) {
+    #tab-bar { display: none; }
     #shortcut-bar { display: none; }
     #custom-kb { display: none !important; }
     .kb-input { display: none; }
@@ -132,6 +151,17 @@
 </head>
 <body>
 <div id="container">
+  <div id="tab-bar">
+    <button data-tab="1">1</button>
+    <button data-tab="2">2</button>
+    <button data-tab="3">3</button>
+    <button data-tab="4">4</button>
+    <button data-tab="5">5</button>
+    <button data-tab="6">6</button>
+    <button data-tab="7">7</button>
+    <button data-tab="8">8</button>
+    <button data-tab="9">9</button>
+  </div>
   <div id="terminal"></div>
   <input id="nokb" class="kb-input" inputmode="none"
     autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
@@ -593,6 +623,18 @@
       var action = btn.getAttribute('data-action');
       var seq = ACTIONS[action];
       if (seq) sendInput(seq);
+      focusNokb();
+    });
+  });
+
+  // Tab bar — send Alt+N to switch tmux windows
+  document.querySelectorAll('#tab-bar [data-tab]').forEach(function(btn) {
+    setupTouchBtn(btn, function() {
+      var n = btn.getAttribute('data-tab');
+      sendInput('\x1b' + n);
+      // Highlight active tab
+      document.querySelectorAll('#tab-bar button').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
       focusNokb();
     });
   });

@@ -11,7 +11,8 @@
 | Method | How |
 |--------|-----|
 | Keyboard | `Alt+1` through `Alt+9` |
-| Mouse/Touch | Click tab names at bottom |
+| Mobile | Tap numbered buttons in tab bar (top of screen) |
+| Desktop | Click tmux tabs at bottom of terminal |
 
 ### Commands
 | Command | What It Does |
@@ -32,8 +33,10 @@
 4. **Add to Home Screen** (Share menu)
 
 ### Using on Mobile
-- **Tap tabs** at bottom to switch sessions
-- Use `launcher` tab to run `cl` for new projects
+- **Tap numbered buttons** at top to switch sessions
+- Use window 1 (launcher) to run `cl` for new projects
+- Tap "ABC" for custom keyboard, long-press for iOS keyboard
+- Use floating scroll arrows to browse terminal history
 - Exit Claude with `/exit` if you need the shell
 
 ---
@@ -45,7 +48,7 @@
 | Close browser | ✓ Yes |
 | Switch devices | ✓ Yes |
 | Lose WiFi | ✓ Yes |
-| WSL/Windows reboot | ✗ No (run `cl` to relaunch) |
+| WSL/Windows reboot | ✓ Service auto-starts (run `cl` to relaunch projects) |
 
 ---
 

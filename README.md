@@ -1,8 +1,5 @@
 # Claude Code Web Terminal
 
-> **Branch `ttyd-mobile` — In Development**
-> This branch adds a custom ttyd frontend with a mobile touch toolbar, replacing Zellij with tmux. It will become the new stable release once testing is complete. Until then, the `main` branch remains the stable release.
-
 Access your Claude Code sessions from any browser — phone, tablet, or laptop. Sessions persist across devices and survive disconnects.
 
 ## Features
@@ -129,7 +126,8 @@ export CLAUDE_CMD="claude"                    # Change to your alias if needed (
 ### Switch Between Sessions
 
 - **Keyboard:** `Alt+1` through `Alt+9`
-- **Touch/Mouse:** Tap the tab bar at the bottom
+- **Mobile:** Tap numbered buttons in the tab bar at the top
+- **Desktop:** Click tmux tabs at the bottom of the terminal
 
 ### Commands
 
@@ -149,23 +147,31 @@ export CLAUDE_CMD="claude"                    # Change to your alias if needed (
 4. Safari: Share → Add to Home Screen
 5. Tap the icon to launch — works like a native app
 
-### Mobile Touch Toolbar
+### Mobile Interface
 
-On mobile screens (<769px), a three-state toolbar appears at the bottom:
+On mobile screens (<769px), the interface provides:
 
-| State | Tap Handle | What's Visible |
-|-------|-----------|----------------|
-| **Collapsed** | Opens compact | Just the drag handle (~3% screen) |
-| **Compact** | Opens full | Essentials: Esc, ^C, Tab, arrows, Enter (~9% screen) |
-| **Full** | Collapses | All keys including tmux windows 1-9, /exit, /help (~20% screen) |
+**Tab bar (top):** Numbered buttons 1-9 for switching tmux windows. Tap to switch — no keyboard invoked.
 
-The toolbar uses a configurable action registry — buttons dispatch semantic actions (e.g., `interrupt`, `escape`) rather than raw escape sequences, making customization straightforward. Hidden on desktop browsers.
+**Shortcut bar (bottom):** Quick access to Esc, Tab, ^C, ^D, arrow keys, Ctrl toggle, and keyboard toggle.
+
+**Custom QWERTY keyboard:** Tap "ABC" to open a compact on-screen keyboard (~196px) with:
+- Full QWERTY layout with number row
+- Shift and Ctrl sticky modifiers
+- Long-press any letter for its symbol (shown as hints)
+- Symbol layouts (#+= and 123 modes)
+- Long-press "ABC" to switch to the native iOS keyboard instead
+
+**Scroll buttons:** Floating translucent arrows on the right edge for scrolling terminal history.
+
+All mobile UI elements are hidden on desktop browsers.
 
 ### Mobile Tips
 
-- **Tap tabs** at the bottom to switch sessions
-- Keep the **launcher** tab for running `cl`
-- Use the toolbar buttons instead of typing escape sequences
+- **Tap tab numbers** at the top to switch sessions
+- Keep the **launcher** tab (window 1) for running `cl`
+- Use the shortcut bar and custom keyboard instead of the iOS keyboard
+- Long-press "ABC" if you need the native iOS keyboard (e.g., for dictation)
 - Exit Claude with `/exit` when you need shell access
 
 ## Session Persistence
