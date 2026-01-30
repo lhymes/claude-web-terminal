@@ -67,10 +67,11 @@
 
 | Feature | Details |
 |---------|---------|
-| **Text selection** | Click and drag to select, right-click to copy/paste |
+| **Text selection** (default) | Click and drag to select text, right-click to copy/paste |
+| **Scroll mode** | Click **Scroll** in toolbar — enables scroll wheel through terminal history |
 | **Copy** | Ctrl+Shift+C, or Ctrl+C when text is selected |
 | **Paste** | Ctrl+Shift+V |
-| **Floating toolbar** | Bottom-right: **+ New** button and clickable tab buttons (1-9) |
+| **Floating toolbar** | Bottom-right: **+ New**, **Scroll/Select** toggle, and tab buttons (1-9) |
 
 ---
 

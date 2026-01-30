@@ -252,6 +252,8 @@
 <div id="desktop-toolbar">
   <button id="dt-new-session" class="accent">+ New</button>
   <span style="width:1px;height:18px;background:#555;margin:0 2px;"></span>
+  <button id="dt-mouse-toggle" title="Toggle between scroll wheel and text selection">Scroll</button>
+  <span style="width:1px;height:18px;background:#555;margin:0 2px;"></span>
   <button class="dtab" data-dtab="1">1</button>
   <button class="dtab" data-dtab="2">2</button>
   <button class="dtab" data-dtab="3">3</button>
@@ -350,18 +352,33 @@
   }
   term.onData(function(data) { sendInput(data); });
 
-  // Desktop: intercept mouse-mode enable sequences at the parser level so
-  // xterm.js never enters mouse capture mode.  This lets the browser handle
-  // clicks and text selection natively while tmux mouse mode stays "on" from
-  // tmux's perspective (it just never takes effect in the browser).
+  // Desktop mouse mode toggle: "Select" mode (default) suppresses mouse
+  // tracking so the browser handles text selection and copy/paste natively.
+  // "Mouse" mode lets xterm.js handle mouse events for tmux scrolling/clicking.
+  var desktopMouseMode = false; // false = Select (suppress), true = Mouse (passthrough)
   if (!isMobile) {
     var mouseTrackParams = { 9:1, 1000:1, 1001:1, 1002:1, 1003:1, 1006:1, 1015:1 };
-    // CSI ? Pm h — DECSET private mode set
     term.parser.registerCsiHandler({ prefix: '?', final: 'h' }, function(params) {
+      if (desktopMouseMode) return false; // Mouse mode: let xterm.js handle it
       for (var i = 0; i < params.length; i++) {
-        if (mouseTrackParams[params[i]]) return true; // swallow — don't enable mouse mode
+        if (mouseTrackParams[params[i]]) return true; // Select mode: swallow
       }
-      return false; // not mouse-related, let xterm.js handle it
+      return false;
+    });
+
+    var dtMouseBtn = document.getElementById('dt-mouse-toggle');
+    dtMouseBtn.addEventListener('click', function() {
+      desktopMouseMode = !desktopMouseMode;
+      dtMouseBtn.textContent = desktopMouseMode ? 'Select' : 'Scroll';
+      dtMouseBtn.classList.toggle('accent', desktopMouseMode);
+      if (desktopMouseMode) {
+        // Re-enable mouse tracking in xterm.js by writing enable sequences
+        term.write('\x1b[?1000h\x1b[?1006h');
+      } else {
+        // Disable mouse tracking in xterm.js
+        term.write('\x1b[?1000l\x1b[?1003l\x1b[?1006l');
+      }
+      term.focus();
     });
   }
 

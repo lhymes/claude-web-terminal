@@ -66,12 +66,13 @@ The terminal interface was designed from the ground up for touch devices. Every 
 
 On screens 769px and wider, the mobile UI is hidden and replaced with a desktop-optimized experience:
 
-**Native mouse interaction** — Text selection, right-click context menus, and copy/paste work exactly like a normal terminal. Mouse mode is intercepted at the xterm.js parser level so tmux's mouse mode doesn't hijack browser events.
+**Scroll / Select toggle** — By default, text selection and copy/paste work natively in the browser. Click **Scroll** in the toolbar to enable scroll-wheel navigation through terminal history. Click **Select** to switch back to text selection mode.
 
-**Copy/paste shortcuts** — Ctrl+Shift+C and Ctrl+Shift+V for clipboard operations. Ctrl+C also copies when text is selected (sends interrupt only when nothing is selected).
+**Copy/paste shortcuts** — Ctrl+Shift+C and Ctrl+Shift+V for clipboard operations. Ctrl+C also copies when text is selected (sends interrupt only when nothing is selected). These work in Select mode.
 
 **Floating toolbar** — A compact overlay in the bottom-right corner with:
 - **+ New** button to launch the project picker (switches to window 1, clears the screen, runs `cl`)
+- **Scroll / Select** toggle to switch between scroll-wheel navigation and text selection
 - Clickable tab buttons (1-9) to switch tmux windows with active tab highlighting
 
 **Responsive font sizing** — Terminal font scales based on viewport width for consistent readability across screen sizes.
