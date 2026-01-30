@@ -1,5 +1,8 @@
 # Claude Code Web Terminal
 
+> **Branch `ttyd-mobile` — In Development**
+> This branch adds a custom ttyd frontend with a mobile touch toolbar, replacing Zellij with tmux. It will become the new stable release once testing is complete. Until then, the `main` branch remains the stable release.
+
 Access your Claude Code sessions from any browser — phone, tablet, or laptop. Sessions persist across devices and survive disconnects.
 
 ## Features
@@ -136,7 +139,7 @@ export CLAUDE_CMD="claude"                    # Change to your alias if needed (
 | `clp ProjectName` | Quick-launch specific project |
 | `cnew ProjectName` | Create new project + launch |
 | `cls` | Check service status |
-| `zj` | Attach to Zellij from terminal |
+| `tj` | Attach to tmux from terminal |
 
 ## Mobile Setup
 
@@ -146,10 +149,23 @@ export CLAUDE_CMD="claude"                    # Change to your alias if needed (
 4. Safari: Share → Add to Home Screen
 5. Tap the icon to launch — works like a native app
 
+### Mobile Touch Toolbar
+
+On mobile screens (<769px), a collapsible toolbar appears at the bottom with three rows of buttons:
+
+| Row | Buttons | Purpose |
+|-----|---------|---------|
+| 1 | Esc, ^C, Tab, arrows | Modifier and navigation keys |
+| 2 | 1-9, ^D, ^L | tmux window switching (Alt+1-9) and control keys |
+| 3 | /exit, /help, Enter | Claude quick commands |
+
+Tap **Toolbar** to expand, **Hide** to collapse. The toolbar is hidden on desktop browsers.
+
 ### Mobile Tips
 
 - **Tap tabs** at the bottom to switch sessions
 - Keep the **launcher** tab for running `cl`
+- Use the toolbar buttons instead of typing escape sequences
 - Exit Claude with `/exit` when you need shell access
 
 ## Session Persistence
@@ -173,7 +189,7 @@ sudo journalctl -u claude-terminal -n 30  # View logs
 
 ### Stale session
 ```bash
-zellij delete-session claude
+tmux kill-session -t claude
 sudo systemctl restart claude-terminal
 ```
 
@@ -199,12 +215,12 @@ Tailscale (encrypted)
        ↓
 ttyd (web terminal, port 7681)
        ↓
-Zellij (session "claude")
+tmux (session "claude")
        ↓
-Multiple tabs with Claude Code
+Multiple windows with Claude Code
 ```
 
-All devices connect to the same Zellij session — you see identical state everywhere.
+All devices connect to the same tmux session — you see identical state everywhere.
 
 ## Uninstall
 
@@ -220,6 +236,8 @@ claude-terminal-setup/
 ├── uninstall.sh         # Removal script
 ├── QUICK-REFERENCE.md   # Printable cheat sheet
 ├── README.md            # This file
+├── html/
+│   └── index.html       # Custom ttyd frontend with mobile toolbar
 └── extras/
     └── install-extras.sh  # Launcher tools
 ```
@@ -231,7 +249,7 @@ Created by **Larry Hymes** — [Hymes Consulting](https://www.hymesconsulting.co
 ## Credits
 
 - [ttyd](https://github.com/tsl0922/ttyd) — Terminal over web
-- [Zellij](https://zellij.dev/) — Terminal multiplexer
+- [tmux](https://github.com/tmux/tmux) — Terminal multiplexer
 - [Tailscale](https://tailscale.com/) — Secure networking
 - [fzf](https://github.com/junegunn/fzf) — Fuzzy finder
 
