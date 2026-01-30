@@ -222,6 +222,23 @@ Multiple windows with Claude Code
 
 All devices connect to the same tmux session — you see identical state everywhere.
 
+## Upgrading from Zellij Version
+
+If you previously installed the Zellij-based version, use the upgrade script:
+
+```bash
+# See what's installed (no changes)
+sudo ./upgrade.sh --detect
+
+# Upgrade: removes old Zellij components, installs new tmux version
+sudo ./upgrade.sh
+
+# Or just remove everything without reinstalling
+sudo ./upgrade.sh --clean
+```
+
+The upgrade preserves your projects in `~/projects`. It removes Zellij config, cache, sessions, and old systemd services, then installs the tmux-based version.
+
 ## Uninstall
 
 ```bash
@@ -233,6 +250,7 @@ sudo ./uninstall.sh
 ```
 claude-terminal-setup/
 ├── install.sh           # Main installer
+├── upgrade.sh           # Upgrade from Zellij or reinstall
 ├── uninstall.sh         # Removal script
 ├── QUICK-REFERENCE.md   # Printable cheat sheet
 ├── README.md            # This file
