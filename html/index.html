@@ -7,34 +7,50 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { height: 100%; background: #1e1e1e; overflow: hidden; }
-  #terminal { height: 100%; width: 100%; }
+  html, body { height: 100dvh; height: 100%; background: #1e1e1e; overflow: hidden; }
+  #terminal { height: 100dvh; height: 100%; width: 100%; }
+
+  /* Toolbar: three states via classes on #toolbar */
+  /* .collapsed = handle only, .compact = handle + primary, (default) = all rows */
   #toolbar {
     position: fixed; bottom: 0; left: 0; right: 0;
     background: #252526; border-top: 1px solid #3c3c3c;
     z-index: 10; transition: transform 0.2s ease;
   }
-  #toolbar.collapsed { transform: translateY(calc(100% - 32px)); }
-  #toolbar-toggle {
-    display: block; width: 100%; height: 32px;
+  #toolbar.collapsed { transform: translateY(calc(100% - 28px)); }
+  #toolbar.compact .ext-row { display: none; }
+
+  #toolbar-handle {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; height: 28px;
     background: #2d2d2d; border: none; border-bottom: 1px solid #3c3c3c;
-    color: #d4d4d4; font-size: 14px; cursor: pointer;
-    touch-action: manipulation;
+    color: #808080; font-size: 12px; cursor: pointer;
+    touch-action: manipulation; gap: 8px;
   }
-  #toolbar-toggle:active { background: #3c3c3c; }
+  #toolbar-handle:active { background: #3c3c3c; }
+  #toolbar-handle .grip {
+    width: 32px; height: 4px; border-radius: 2px;
+    background: #555;
+  }
+
   .btn-row {
-    display: flex; flex-wrap: nowrap; padding: 4px 2px;
-    gap: 3px; overflow-x: auto;
+    display: flex; flex-wrap: nowrap; padding: 4px 3px;
+    gap: 4px;
   }
   .btn-row button {
-    flex: 1 1 0; min-width: 36px; height: 38px;
-    background: #333; border: 1px solid #555; border-radius: 4px;
+    flex: 1 1 0; min-width: 40px; height: 44px;
+    background: #333; border: 1px solid #555; border-radius: 6px;
     color: #d4d4d4; font-size: 13px; font-family: monospace;
     cursor: pointer; touch-action: manipulation;
-    white-space: nowrap; padding: 0 4px;
+    white-space: nowrap; padding: 0 2px;
+    -webkit-tap-highlight-color: transparent;
   }
   .btn-row button:active { background: #569cd6; color: #1e1e1e; }
-  .btn-row button.wide { flex: 1.5 1 0; min-width: 48px; }
+  .btn-row button.accent {
+    background: #264f78; border-color: #569cd6;
+  }
+  .btn-row button.accent:active { background: #569cd6; }
+
   @media (min-width: 769px) {
     #toolbar { display: none; }
   }
@@ -43,33 +59,35 @@
 <body>
 <div id="terminal"></div>
 <div id="toolbar" class="collapsed">
-  <button id="toolbar-toggle">Toolbar</button>
-  <div class="btn-row">
-    <button data-send="\x1b">Esc</button>
-    <button data-send="\x03">^C</button>
-    <button data-send="\x09">Tab</button>
-    <button data-send="\x1b[A">&uarr;</button>
-    <button data-send="\x1b[B">&darr;</button>
-    <button data-send="\x1b[D">&larr;</button>
-    <button data-send="\x1b[C">&rarr;</button>
+  <button id="toolbar-handle"><span class="grip"></span></button>
+  <!-- Primary row: essentials always visible in compact mode -->
+  <div class="btn-row" id="primary-row">
+    <button data-action="escape">Esc</button>
+    <button data-action="interrupt">^C</button>
+    <button data-action="tab">Tab</button>
+    <button data-action="up">&uarr;</button>
+    <button data-action="down">&darr;</button>
+    <button data-action="left">&larr;</button>
+    <button data-action="right">&rarr;</button>
+    <button data-action="enter" class="accent">&#x23ce;</button>
   </div>
-  <div class="btn-row">
-    <button data-send="\x1b1">1</button>
-    <button data-send="\x1b2">2</button>
-    <button data-send="\x1b3">3</button>
-    <button data-send="\x1b4">4</button>
-    <button data-send="\x1b5">5</button>
-    <button data-send="\x1b6">6</button>
-    <button data-send="\x1b7">7</button>
-    <button data-send="\x1b8">8</button>
-    <button data-send="\x1b9">9</button>
-    <button data-send="\x04">^D</button>
-    <button data-send="\x0c">^L</button>
+  <!-- Extended rows: visible only in full mode -->
+  <div class="btn-row ext-row">
+    <button data-action="window-1">1</button>
+    <button data-action="window-2">2</button>
+    <button data-action="window-3">3</button>
+    <button data-action="window-4">4</button>
+    <button data-action="window-5">5</button>
+    <button data-action="window-6">6</button>
+    <button data-action="window-7">7</button>
+    <button data-action="window-8">8</button>
+    <button data-action="window-9">9</button>
   </div>
-  <div class="btn-row">
-    <button data-send="/exit\r" class="wide">/exit</button>
-    <button data-send="/help\r" class="wide">/help</button>
-    <button data-send="\r" class="wide">Enter</button>
+  <div class="btn-row ext-row">
+    <button data-action="eof">^D</button>
+    <button data-action="clear">^L</button>
+    <button data-action="cmd-exit">/exit</button>
+    <button data-action="cmd-help">/help</button>
   </div>
 </div>
 
@@ -77,6 +95,34 @@
 <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
 <script>
 (function() {
+  // ---- Action Registry ----
+  // Semantic action names mapped to terminal sequences.
+  // To customize, modify this object — no HTML changes needed.
+  var ACTIONS = {
+    'escape':    '\x1b',
+    'interrupt': '\x03',
+    'eof':       '\x04',
+    'tab':       '\x09',
+    'enter':     '\r',
+    'clear':     '\x0c',
+    'up':        '\x1b[A',
+    'down':      '\x1b[B',
+    'left':      '\x1b[D',
+    'right':     '\x1b[C',
+    'window-1':  '\x1b1',
+    'window-2':  '\x1b2',
+    'window-3':  '\x1b3',
+    'window-4':  '\x1b4',
+    'window-5':  '\x1b5',
+    'window-6':  '\x1b6',
+    'window-7':  '\x1b7',
+    'window-8':  '\x1b8',
+    'window-9':  '\x1b9',
+    'cmd-exit':  '/exit\r',
+    'cmd-help':  '/help\r'
+  };
+
+  // ---- Terminal Setup ----
   var term = new Terminal({
     fontSize: 14,
     fontFamily: "'Cascadia Code', 'Fira Code', 'Consolas', monospace",
@@ -88,8 +134,8 @@
   term.loadAddon(fitAddon);
   term.open(document.getElementById('terminal'));
 
+  // ---- WebSocket ----
   var ws = null;
-  var authSent = false;
 
   function textEncoder(str) {
     return new TextEncoder().encode(str);
@@ -97,10 +143,8 @@
 
   function sendInput(data) {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    var payload = new Uint8Array(data.length + 1);
-    payload[0] = 0; // INPUT command
     var encoded = typeof data === 'string' ? textEncoder(data) : data;
-    payload = new Uint8Array(encoded.length + 1);
+    var payload = new Uint8Array(encoded.length + 1);
     payload[0] = 0;
     payload.set(encoded, 1);
     ws.send(payload);
@@ -108,13 +152,9 @@
 
   function sendResize() {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    var msg = '1' + JSON.stringify({ columns: term.cols, rows: term.rows });
-    // ttyd expects resize as: command byte 1 + JSON
-    var payload = new Uint8Array(msg.length);
-    payload[0] = 1;
     var json = JSON.stringify({ columns: term.cols, rows: term.rows });
     var encoded = textEncoder(json);
-    payload = new Uint8Array(encoded.length + 1);
+    var payload = new Uint8Array(encoded.length + 1);
     payload[0] = 1;
     payload.set(encoded, 1);
     ws.send(payload);
@@ -125,11 +165,9 @@
     var url = protocol + '//' + location.host + '/ws';
     ws = new WebSocket(url, ['tty']);
     ws.binaryType = 'arraybuffer';
-    authSent = false;
 
     ws.onopen = function() {
       fitAddon.fit();
-      // Send auth + initial size
       var authMsg = JSON.stringify({
         AuthToken: '',
         columns: term.cols,
@@ -140,7 +178,6 @@
       payload[0] = 0;
       payload.set(encoded, 1);
       ws.send(payload);
-      authSent = true;
     };
 
     ws.onmessage = function(ev) {
@@ -149,15 +186,8 @@
       var cmd = data[0];
       var body = data.slice(1);
       switch (cmd) {
-        case 0: // OUTPUT
-          term.write(body);
-          break;
-        case 1: // SET_WINDOW_TITLE
-          document.title = new TextDecoder().decode(body);
-          break;
-        case 2: // SET_PREFERENCES
-          // Could apply prefs here
-          break;
+        case 0: term.write(body); break;
+        case 1: document.title = new TextDecoder().decode(body); break;
       }
     };
 
@@ -166,72 +196,88 @@
       setTimeout(connect, 2000);
     };
 
-    ws.onerror = function() {
-      ws.close();
-    };
+    ws.onerror = function() { ws.close(); };
   }
 
-  // Terminal input -> WebSocket
-  term.onData(function(data) {
-    sendInput(data);
-  });
+  term.onData(function(data) { sendInput(data); });
 
-  // Resize handling
+  // ---- Resize Handling ----
   function doFit() {
     fitAddon.fit();
     sendResize();
   }
 
   window.addEventListener('resize', doFit);
-  var resizeObserver = new ResizeObserver(doFit);
-  resizeObserver.observe(document.getElementById('terminal'));
+  new ResizeObserver(doFit).observe(document.getElementById('terminal'));
 
-  // Toolbar toggle
+  // ---- Toolbar: Three-State Toggle ----
+  // States: collapsed (handle only) → compact (primary row) → full (all rows)
   var toolbar = document.getElementById('toolbar');
-  var toggle = document.getElementById('toolbar-toggle');
-  toggle.addEventListener('click', function() {
-    toolbar.classList.toggle('collapsed');
-    toggle.textContent = toolbar.classList.contains('collapsed') ? 'Toolbar' : 'Hide';
-    setTimeout(doFit, 250);
-  });
+  var handle = document.getElementById('toolbar-handle');
+  var toolbarState = 'collapsed'; // collapsed | compact | full
 
-  // Toolbar button handlers
-  function parseEscapes(str) {
-    return str.replace(/\\x([0-9a-fA-F]{2})/g, function(_, hex) {
-      return String.fromCharCode(parseInt(hex, 16));
-    }).replace(/\\r/g, '\r').replace(/\\n/g, '\n');
+  function setToolbarState(state) {
+    toolbarState = state;
+    toolbar.className = (state === 'collapsed') ? 'collapsed' :
+                        (state === 'compact')   ? 'compact' : '';
+    adjustHeight();
   }
 
-  document.querySelectorAll('.btn-row button[data-send]').forEach(function(btn) {
+  handle.addEventListener('click', function() {
+    if (toolbarState === 'collapsed') setToolbarState('compact');
+    else if (toolbarState === 'compact') setToolbarState('full');
+    else setToolbarState('collapsed');
+  });
+
+  // ---- Action Dispatch ----
+  document.querySelectorAll('[data-action]').forEach(function(btn) {
     btn.addEventListener('click', function(e) {
       e.preventDefault();
-      var raw = btn.getAttribute('data-send');
-      sendInput(parseEscapes(raw));
-      term.focus();
+      var action = btn.getAttribute('data-action');
+      var seq = ACTIONS[action];
+      if (seq) {
+        sendInput(seq);
+        term.focus();
+      }
     });
-    // Prevent long-press context menu on mobile
     btn.addEventListener('contextmenu', function(e) { e.preventDefault(); });
   });
 
-  // Adjust terminal height when toolbar is visible
+  // ---- Height Adjustment ----
   function adjustHeight() {
-    var tb = document.getElementById('toolbar');
     var termEl = document.getElementById('terminal');
-    if (window.innerWidth < 769) {
-      var tbHeight = tb.classList.contains('collapsed') ? 32 : tb.offsetHeight;
-      termEl.style.height = 'calc(100% - ' + tbHeight + 'px)';
-    } else {
+    if (window.innerWidth >= 769) {
       termEl.style.height = '100%';
+    } else {
+      var tbHeight;
+      if (toolbarState === 'collapsed') {
+        tbHeight = 28;
+      } else {
+        tbHeight = toolbar.offsetHeight;
+      }
+      termEl.style.height = 'calc(100% - ' + tbHeight + 'px)';
     }
-    setTimeout(function() { fitAddon.fit(); }, 50);
+    setTimeout(doFit, 50);
   }
 
   window.addEventListener('resize', adjustHeight);
-  toggle.addEventListener('click', function() {
-    setTimeout(adjustHeight, 250);
-  });
 
-  // Start
+  // iOS Safari: position:fixed breaks when soft keyboard opens.
+  // Use visualViewport API to reposition toolbar above keyboard.
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', function() {
+      var vv = window.visualViewport;
+      // Offset toolbar so it sits above the keyboard, not behind it
+      toolbar.style.bottom = (window.innerHeight - vv.height - vv.offsetTop) + 'px';
+      adjustHeight();
+    });
+    window.visualViewport.addEventListener('scroll', function() {
+      var vv = window.visualViewport;
+      toolbar.style.bottom = (window.innerHeight - vv.height - vv.offsetTop) + 'px';
+    });
+  }
+
+  // ---- Start ----
   adjustHeight();
   connect();
 })();

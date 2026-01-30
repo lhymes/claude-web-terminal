@@ -151,15 +151,15 @@ export CLAUDE_CMD="claude"                    # Change to your alias if needed (
 
 ### Mobile Touch Toolbar
 
-On mobile screens (<769px), a collapsible toolbar appears at the bottom with three rows of buttons:
+On mobile screens (<769px), a three-state toolbar appears at the bottom:
 
-| Row | Buttons | Purpose |
-|-----|---------|---------|
-| 1 | Esc, ^C, Tab, arrows | Modifier and navigation keys |
-| 2 | 1-9, ^D, ^L | tmux window switching (Alt+1-9) and control keys |
-| 3 | /exit, /help, Enter | Claude quick commands |
+| State | Tap Handle | What's Visible |
+|-------|-----------|----------------|
+| **Collapsed** | Opens compact | Just the drag handle (~3% screen) |
+| **Compact** | Opens full | Essentials: Esc, ^C, Tab, arrows, Enter (~9% screen) |
+| **Full** | Collapses | All keys including tmux windows 1-9, /exit, /help (~20% screen) |
 
-Tap **Toolbar** to expand, **Hide** to collapse. The toolbar is hidden on desktop browsers.
+The toolbar uses a configurable action registry — buttons dispatch semantic actions (e.g., `interrupt`, `escape`) rather than raw escape sequences, making customization straightforward. Hidden on desktop browsers.
 
 ### Mobile Tips
 
