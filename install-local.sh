@@ -3,7 +3,7 @@ set -e
 
 # ============================================================================
 # Local-only installer — applies latest scripts to this machine
-# Uses ccc as CLAUDE_CMD. Not tracked in git.
+# Usage: sudo ./install-local.sh
 # Usage: sudo ./install-local.sh
 # ============================================================================
 
@@ -116,7 +116,7 @@ cat > /usr/local/bin/claude-launcher << 'LAUNCHER'
 # Interactive project picker - launch multiple Claude Code sessions
 
 PROJECTS_DIR="${CLAUDE_PROJECTS_DIR:-$HOME/projects}"
-CLAUDE_CMD="${CLAUDE_CMD:-ccc}"
+CLAUDE_CMD="${CLAUDE_CMD:-claude}"
 
 GREEN='\033[0;32m'
 CYAN='\033[0;36m'
@@ -193,7 +193,7 @@ cat > /usr/local/bin/clp << 'CLP'
 # Quick launch a single project
 
 PROJECTS_DIR="${CLAUDE_PROJECTS_DIR:-$HOME/projects}"
-CLAUDE_CMD="${CLAUDE_CMD:-ccc}"
+CLAUDE_CMD="${CLAUDE_CMD:-claude}"
 
 if [ -z "$1" ]; then
     echo "Usage: clp <project-name>"
@@ -233,7 +233,7 @@ cat > /usr/local/bin/cnew << 'CNEW'
 # Create a new project and launch Claude Code in it
 
 PROJECTS_DIR="${CLAUDE_PROJECTS_DIR:-$HOME/projects}"
-CLAUDE_CMD="${CLAUDE_CMD:-ccc}"
+CLAUDE_CMD="${CLAUDE_CMD:-claude}"
 
 if [ -z "$1" ]; then
     echo "Usage: cnew <project-name>"

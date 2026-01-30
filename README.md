@@ -116,7 +116,7 @@ The launcher scripts use environment variables. Add to `~/.bashrc`:
 
 ```bash
 export CLAUDE_PROJECTS_DIR="$HOME/projects"  # Default: ~/projects
-export CLAUDE_CMD="claude"                    # Default: ccc (change to your alias)
+export CLAUDE_CMD="claude"                    # Change if you use an alias
 ```
 
 ## Daily Usage
