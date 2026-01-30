@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Claude Terminal</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; background: #1e1e1e; overflow: hidden; }
+  #terminal { height: 100%; width: 100%; }
+  #toolbar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: #252526; border-top: 1px solid #3c3c3c;
+    z-index: 10; transition: transform 0.2s ease;
+  }
+  #toolbar.collapsed { transform: translateY(calc(100% - 32px)); }
+  #toolbar-toggle {
+    display: block; width: 100%; height: 32px;
+    background: #2d2d2d; border: none; border-bottom: 1px solid #3c3c3c;
+    color: #d4d4d4; font-size: 14px; cursor: pointer;
+    touch-action: manipulation;
+  }
+  #toolbar-toggle:active { background: #3c3c3c; }
+  .btn-row {
+    display: flex; flex-wrap: nowrap; padding: 4px 2px;
+    gap: 3px; overflow-x: auto;
+  }
+  .btn-row button {
+    flex: 1 1 0; min-width: 36px; height: 38px;
+    background: #333; border: 1px solid #555; border-radius: 4px;
+    color: #d4d4d4; font-size: 13px; font-family: monospace;
+    cursor: pointer; touch-action: manipulation;
+    white-space: nowrap; padding: 0 4px;
+  }
+  .btn-row button:active { background: #569cd6; color: #1e1e1e; }
+  .btn-row button.wide { flex: 1.5 1 0; min-width: 48px; }
+  @media (min-width: 769px) {
+    #toolbar { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="terminal"></div>
+<div id="toolbar" class="collapsed">
+  <button id="toolbar-toggle">Toolbar</button>
+  <div class="btn-row">
+    <button data-send="\x1b">Esc</button>
+    <button data-send="\x03">^C</button>
+    <button data-send="\x09">Tab</button>
+    <button data-send="\x1b[A">&uarr;</button>
+    <button data-send="\x1b[B">&darr;</button>
+    <button data-send="\x1b[D">&larr;</button>
+    <button data-send="\x1b[C">&rarr;</button>
+  </div>
+  <div class="btn-row">
+    <button data-send="\x1b1">1</button>
+    <button data-send="\x1b2">2</button>
+    <button data-send="\x1b3">3</button>
+    <button data-send="\x1b4">4</button>
+    <button data-send="\x1b5">5</button>
+    <button data-send="\x1b6">6</button>
+    <button data-send="\x1b7">7</button>
+    <button data-send="\x1b8">8</button>
+    <button data-send="\x1b9">9</button>
+    <button data-send="\x04">^D</button>
+    <button data-send="\x0c">^L</button>
+  </div>
+  <div class="btn-row">
+    <button data-send="/exit\r" class="wide">/exit</button>
+    <button data-send="/help\r" class="wide">/help</button>
+    <button data-send="\r" class="wide">Enter</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
+<script>
+(function() {
+  var term = new Terminal({
+    fontSize: 14,
+    fontFamily: "'Cascadia Code', 'Fira Code', 'Consolas', monospace",
+    theme: { background: '#1e1e1e', foreground: '#d4d4d4', cursor: '#d4d4d4' },
+    cursorBlink: true,
+    allowProposedApi: true
+  });
+  var fitAddon = new FitAddon.FitAddon();
+  term.loadAddon(fitAddon);
+  term.open(document.getElementById('terminal'));
+
+  var ws = null;
+  var authSent = false;
+
+  function textEncoder(str) {
+    return new TextEncoder().encode(str);
+  }
+
+  function sendInput(data) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    var payload = new Uint8Array(data.length + 1);
+    payload[0] = 0; // INPUT command
+    var encoded = typeof data === 'string' ? textEncoder(data) : data;
+    payload = new Uint8Array(encoded.length + 1);
+    payload[0] = 0;
+    payload.set(encoded, 1);
+    ws.send(payload);
+  }
+
+  function sendResize() {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    var msg = '1' + JSON.stringify({ columns: term.cols, rows: term.rows });
+    // ttyd expects resize as: command byte 1 + JSON
+    var payload = new Uint8Array(msg.length);
+    payload[0] = 1;
+    var json = JSON.stringify({ columns: term.cols, rows: term.rows });
+    var encoded = textEncoder(json);
+    payload = new Uint8Array(encoded.length + 1);
+    payload[0] = 1;
+    payload.set(encoded, 1);
+    ws.send(payload);
+  }
+
+  function connect() {
+    var protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    var url = protocol + '//' + location.host + '/ws';
+    ws = new WebSocket(url, ['tty']);
+    ws.binaryType = 'arraybuffer';
+    authSent = false;
+
+    ws.onopen = function() {
+      fitAddon.fit();
+      // Send auth + initial size
+      var authMsg = JSON.stringify({
+        AuthToken: '',
+        columns: term.cols,
+        rows: term.rows
+      });
+      var encoded = textEncoder(authMsg);
+      var payload = new Uint8Array(encoded.length + 1);
+      payload[0] = 0;
+      payload.set(encoded, 1);
+      ws.send(payload);
+      authSent = true;
+    };
+
+    ws.onmessage = function(ev) {
+      if (typeof ev.data === 'string') return;
+      var data = new Uint8Array(ev.data);
+      var cmd = data[0];
+      var body = data.slice(1);
+      switch (cmd) {
+        case 0: // OUTPUT
+          term.write(body);
+          break;
+        case 1: // SET_WINDOW_TITLE
+          document.title = new TextDecoder().decode(body);
+          break;
+        case 2: // SET_PREFERENCES
+          // Could apply prefs here
+          break;
+      }
+    };
+
+    ws.onclose = function() {
+      term.write('\r\n\x1b[33mConnection closed. Reconnecting...\x1b[0m\r\n');
+      setTimeout(connect, 2000);
+    };
+
+    ws.onerror = function() {
+      ws.close();
+    };
+  }
+
+  // Terminal input -> WebSocket
+  term.onData(function(data) {
+    sendInput(data);
+  });
+
+  // Resize handling
+  function doFit() {
+    fitAddon.fit();
+    sendResize();
+  }
+
+  window.addEventListener('resize', doFit);
+  var resizeObserver = new ResizeObserver(doFit);
+  resizeObserver.observe(document.getElementById('terminal'));
+
+  // Toolbar toggle
+  var toolbar = document.getElementById('toolbar');
+  var toggle = document.getElementById('toolbar-toggle');
+  toggle.addEventListener('click', function() {
+    toolbar.classList.toggle('collapsed');
+    toggle.textContent = toolbar.classList.contains('collapsed') ? 'Toolbar' : 'Hide';
+    setTimeout(doFit, 250);
+  });
+
+  // Toolbar button handlers
+  function parseEscapes(str) {
+    return str.replace(/\\x([0-9a-fA-F]{2})/g, function(_, hex) {
+      return String.fromCharCode(parseInt(hex, 16));
+    }).replace(/\\r/g, '\r').replace(/\\n/g, '\n');
+  }
+
+  document.querySelectorAll('.btn-row button[data-send]').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      var raw = btn.getAttribute('data-send');
+      sendInput(parseEscapes(raw));
+      term.focus();
+    });
+    // Prevent long-press context menu on mobile
+    btn.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+  });
+
+  // Adjust terminal height when toolbar is visible
+  function adjustHeight() {
+    var tb = document.getElementById('toolbar');
+    var termEl = document.getElementById('terminal');
+    if (window.innerWidth < 769) {
+      var tbHeight = tb.classList.contains('collapsed') ? 32 : tb.offsetHeight;
+      termEl.style.height = 'calc(100% - ' + tbHeight + 'px)';
+    } else {
+      termEl.style.height = '100%';
+    }
+    setTimeout(function() { fitAddon.fit(); }, 50);
+  }
+
+  window.addEventListener('resize', adjustHeight);
+  toggle.addEventListener('click', function() {
+    setTimeout(adjustHeight, 250);
+  });
+
+  // Start
+  adjustHeight();
+  connect();
+})();
+</script>
+</body>
+</html>

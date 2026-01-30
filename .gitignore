@@ -2,3 +2,4 @@
 .claudeignore
 CLAUDE.md
 *.claude
+install-local.sh
