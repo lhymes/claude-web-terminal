@@ -2,10 +2,25 @@
 set -e
 
 # ============================================================================
-# Local-only installer — applies latest scripts to this machine
-# Usage: sudo ./install-local.sh
-# Usage: sudo ./install-local.sh
+# Claude Code Web Terminal — Installer / Upgrader / Uninstaller
+# Usage: sudo ./install-local.sh            # Install or upgrade
+#        sudo ./install-local.sh --uninstall # Remove everything
 # ============================================================================
+
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+print_success() { echo -e "${GREEN}[✓]${NC} $1"; }
+print_info()    { echo -e "${CYAN}[i]${NC} $1"; }
+print_warn()    { echo -e "${YELLOW}[!]${NC} $1"; }
+print_error()   { echo -e "${RED}[✗]${NC} $1"; }
+
+BASHRC_START="# --- claude-terminal-config-start ---"
+BASHRC_END="# --- claude-terminal-config-end ---"
+MARKER_FILE="/usr/local/share/claude-terminal/.installed"
 
 if [[ $EUID -ne 0 ]]; then
     echo "Run with sudo: sudo ./install-local.sh"
@@ -14,10 +29,100 @@ fi
 
 USER_NAME="${SUDO_USER:-$USER}"
 USER_HOME=$(getent passwd "$USER_NAME" | cut -d: -f6)
+CONFIG_DIR="$USER_HOME/.config/claude-terminal"
+SETTINGS_FILE="$CONFIG_DIR/settings.conf"
 
-GREEN='\033[0;32m'
-NC='\033[0m'
-print_success() { echo -e "${GREEN}[✓]${NC} $1"; }
+# ============================================================================
+# UNINSTALL
+# ============================================================================
+if [[ "${1:-}" == "--uninstall" ]]; then
+    echo ""
+    echo -e "${YELLOW}Claude Code Web Terminal — Uninstall${NC}"
+    echo ""
+    echo "This will remove:"
+    echo "  - systemd services (claude-terminal + healthcheck timer)"
+    echo "  - CLI tools (claude-launcher, clp, cnew, cls, tj)"
+    echo "  - Frontend files (/usr/local/share/claude-terminal/)"
+    echo "  - Configuration (~/.config/claude-terminal/)"
+    echo "  - Shell configuration (bashrc block + tmux.conf)"
+    echo ""
+    echo "Your project files will NOT be removed."
+    echo ""
+    read -p "Continue with removal? [y/N] " confirm1
+    if [[ "$confirm1" != "y" && "$confirm1" != "Y" ]]; then
+        echo "Cancelled."
+        exit 0
+    fi
+    echo ""
+    read -p "Are you sure? This cannot be undone. Type 'REMOVE' to confirm: " confirm2
+    if [[ "$confirm2" != "REMOVE" ]]; then
+        echo "Cancelled."
+        exit 0
+    fi
+    echo ""
+
+    # Stop and disable services
+    systemctl stop claude-terminal-healthcheck.timer 2>/dev/null || true
+    systemctl disable claude-terminal-healthcheck.timer 2>/dev/null || true
+    systemctl stop claude-terminal 2>/dev/null || true
+    systemctl disable claude-terminal 2>/dev/null || true
+    rm -f /etc/systemd/system/claude-terminal.service
+    rm -f /etc/systemd/system/claude-terminal-healthcheck.service
+    rm -f /etc/systemd/system/claude-terminal-healthcheck.timer
+    systemctl daemon-reload
+    print_success "systemd services removed"
+
+    # Remove CLI tools
+    rm -f /usr/local/bin/claude-launcher
+    rm -f /usr/local/bin/clp
+    rm -f /usr/local/bin/cnew
+    rm -f /usr/local/bin/cls
+    rm -f /usr/local/bin/tj
+    rm -f /usr/local/bin/claude-terminal-healthcheck
+    print_success "CLI tools removed"
+
+    # Remove frontend files
+    rm -rf /usr/local/share/claude-terminal
+    print_success "Frontend files removed"
+
+    # Remove config
+    rm -rf "$CONFIG_DIR"
+    print_success "Configuration removed"
+
+    # Remove bashrc block
+    if grep -qF "$BASHRC_START" "$USER_HOME/.bashrc" 2>/dev/null; then
+        sed -i "/$BASHRC_START/,/$BASHRC_END/d" "$USER_HOME/.bashrc"
+        print_success "Shell configuration removed from .bashrc"
+    fi
+
+    # Remove tmux.conf (warn if it has non-standard content)
+    if [[ -f "$USER_HOME/.tmux.conf" ]]; then
+        if grep -q "Claude Code Web Terminal" "$USER_HOME/.tmux.conf" 2>/dev/null; then
+            rm -f "$USER_HOME/.tmux.conf"
+            print_success "tmux.conf removed"
+        else
+            print_warn "~/.tmux.conf exists but appears customized — left in place"
+        fi
+    fi
+
+    echo ""
+    echo -e "${GREEN}Uninstall complete.${NC} Your project files were not touched."
+    exit 0
+fi
+
+# ============================================================================
+# INSTALL / UPGRADE
+# ============================================================================
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+IS_UPGRADE=false
+if [[ -f "$MARKER_FILE" ]]; then
+    IS_UPGRADE=true
+    print_info "Existing installation detected — upgrading (settings preserved)"
+else
+    print_info "Fresh installation"
+fi
+
+echo ""
 
 # ---- tmux config ----
 cat > "$USER_HOME/.tmux.conf" << 'TMUX_CONFIG'
@@ -66,9 +171,8 @@ chown "$USER_NAME:$USER_NAME" "$USER_HOME/.tmux.conf"
 print_success "tmux config updated"
 
 # ---- custom ttyd frontend ----
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 mkdir -p /usr/local/share/claude-terminal
-cp "$SCRIPT_DIR/html/index.html" /usr/local/share/claude-terminal/index.html
+cp "$SCRIPT_DIR/html/"* /usr/local/share/claude-terminal/
 print_success "custom ttyd frontend installed"
 
 # ---- systemd service (tmux-based with boot recovery) ----
@@ -309,8 +413,6 @@ LOG_TAG="claude-healthcheck"
 log() { logger -t "$LOG_TAG" "$1"; }
 
 # Check if ttyd process is alive and listening
-# Note: tmux runs as a child of ttyd, so 'tmux has-session' won't find it.
-# Instead, check that the ttyd process exists and its port is open.
 if systemctl is-active --quiet claude-terminal; then
     TTYD_PID=$(systemctl show claude-terminal -p MainPID --value 2>/dev/null)
     if [ -n "$TTYD_PID" ] && [ "$TTYD_PID" != "0" ] && kill -0 "$TTYD_PID" 2>/dev/null; then
@@ -363,5 +465,77 @@ systemctl enable claude-terminal-healthcheck.timer
 systemctl start claude-terminal-healthcheck.timer
 print_success "healthcheck timer enabled"
 
+# ---- Write install marker ----
+touch "$MARKER_FILE"
+
+# ============================================================================
+# USER SETTINGS (fresh install only)
+# ============================================================================
+if [[ "$IS_UPGRADE" == true ]]; then
+    echo ""
+    print_info "Existing user settings preserved"
+    print_info "  Config: $SETTINGS_FILE"
+else
+    echo ""
+    echo -e "${CYAN}── User Configuration ──${NC}"
+    echo ""
+
+    # Prompt for Claude command
+    echo "Claude Code is launched with 'claude' by default."
+    read -p "Custom command or alias? [claude]: " user_cmd < /dev/tty
+    user_cmd="${user_cmd:-claude}"
+
+    # Prompt for projects directory
+    echo ""
+    echo "Projects are stored in ~/projects by default."
+    read -p "Projects directory? [$USER_HOME/projects]: " user_projects < /dev/tty
+    user_projects="${user_projects:-$USER_HOME/projects}"
+    # Expand ~ if used
+    user_projects="${user_projects/#\~/$USER_HOME}"
+
+    # Create projects dir if it doesn't exist
+    if [[ ! -d "$user_projects" ]]; then
+        sudo -u "$USER_NAME" mkdir -p "$user_projects"
+        print_success "Created projects directory: $user_projects"
+    fi
+
+    # Write settings file
+    sudo -u "$USER_NAME" mkdir -p "$CONFIG_DIR"
+    cat > "$SETTINGS_FILE" << SETTINGS
+# Claude Code Web Terminal — User Settings
+# Edit these values to customize your setup.
+# Changes take effect on next shell login.
+CLAUDE_CMD="$user_cmd"
+CLAUDE_PROJECTS_DIR="$user_projects"
+SETTINGS
+    chown "$USER_NAME:$USER_NAME" "$SETTINGS_FILE"
+    print_success "Settings saved to $SETTINGS_FILE"
+
+    # Add bashrc block (if not already present)
+    if ! grep -qF "$BASHRC_START" "$USER_HOME/.bashrc" 2>/dev/null; then
+        cat >> "$USER_HOME/.bashrc" << 'BASHRC_BLOCK'
+
+# --- claude-terminal-config-start ---
+if [ -f "$HOME/.config/claude-terminal/settings.conf" ]; then
+    source "$HOME/.config/claude-terminal/settings.conf"
+fi
+export CLAUDE_CMD="${CLAUDE_CMD:-claude}"
+export CLAUDE_PROJECTS_DIR="${CLAUDE_PROJECTS_DIR:-$HOME/projects}"
+alias cl='claude-launcher'
+# --- claude-terminal-config-end ---
+BASHRC_BLOCK
+        print_success "Shell aliases added to .bashrc"
+    else
+        print_info "Shell aliases already present in .bashrc"
+    fi
+fi
+
+# ---- Done ----
 echo ""
-echo "All done. Local scripts updated (cl, clp, cnew, cls, tj + healthcheck)."
+if [[ "$IS_UPGRADE" == true ]]; then
+    echo -e "${GREEN}Upgrade complete.${NC} Restart the service to apply:"
+else
+    echo -e "${GREEN}Installation complete.${NC} Start the service:"
+fi
+echo "  sudo systemctl restart claude-terminal"
+echo ""
