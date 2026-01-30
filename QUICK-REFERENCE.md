@@ -154,4 +154,6 @@ REMOTE_SUDO="no"                       # Passwordless sudo (yes/no)
 
 Edit the file and run `source ~/.bashrc` to apply, or re-run `sudo ./install-local.sh` to change settings interactively.
 
+**Security:** Tailscale protects your terminal from outside access. Only devices on your personal Tailscale network can connect — nothing is exposed to the public internet.
+
 **Remote sudo:** If enabled, sudo works without a password in the web terminal. Requires Tailscale VPN — never expose ttyd directly to the internet. Your device security is your last line of defense.

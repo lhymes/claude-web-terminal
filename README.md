@@ -17,7 +17,7 @@ The hard part isn't putting a terminal in a browser — it's making it actually 
 - **Multi-project workflows** — Run up to 9 Claude sessions simultaneously in tmux windows. Switch between them with a tap or keystroke.
 - **One-click session launcher** — Select projects from a fuzzy-search picker. Already-open projects switch to the existing window instead of creating duplicates.
 - **Installable as an app** — Add to Home Screen on iOS/Android for a native app experience with custom icon and full-screen display (PWA).
-- **Zero internet exposure** — All traffic encrypted through Tailscale VPN peer-to-peer. Nothing is exposed to the public internet.
+- **Protected by Tailscale** — Your terminal is never exposed to the public internet. All traffic is encrypted end-to-end through Tailscale's peer-to-peer VPN. Only devices signed into your personal Tailscale network can connect.
 - **Upgrade-safe** — User settings (launch command, projects directory, sudo preference) are preserved across upgrades, with the option to change them.
 - **Cross-platform** — Runs on macOS, Linux, and Windows (WSL2). One-command install on each.
 
@@ -74,19 +74,16 @@ On screens 769px and wider, the mobile UI is hidden and replaced with a desktop-
 
 ## Quick Install
 
-### Step 1: Tailscale (Required)
+### About Tailscale
 
-**Do not proceed without setting up Tailscale first.** Tailscale creates the private encrypted network that makes your terminal accessible from any device. Without it, the terminal is only available on `localhost`.
+Tailscale creates the private encrypted network that makes your terminal accessible from any device — phone, tablet, laptop — without exposing anything to the public internet. Each platform's install steps below include Tailscale setup. You'll also need to install Tailscale on every **client device** you want to connect from:
 
-Install Tailscale on **your host machine** and on **every device** you want to access the terminal from (phone, tablet, other laptops):
-
-- **Linux / WSL:** `curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up`
-- **macOS:** Download from [tailscale.com/download](https://tailscale.com/download)
 - **iOS / Android:** Install from the App Store or Play Store
+- **Other laptops/desktops:** [tailscale.com/download](https://tailscale.com/download)
 
-**Sign in with the same Tailscale account on every device.** Verify with `tailscale status`.
+**Sign in with the same Tailscale account on every device.**
 
-### Step 2: Install (choose your platform)
+### Install (choose your platform)
 
 #### Windows (WSL2)
 
@@ -102,6 +99,9 @@ Then inside your Ubuntu WSL terminal:
 #   [boot]
 #   systemd=true
 
+# Install Tailscale (required — protects your terminal from outside access)
+curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up
+
 # Install dependencies
 sudo apt-get install -y tmux fzf
 # ttyd: install from https://github.com/tsl0922/ttyd/releases (need 1.7.4+)
@@ -114,7 +114,7 @@ git clone https://github.com/lhymes/claude-web-terminal.git
 cd claude-web-terminal
 sudo ./install-local.sh
 
-# Start and expose
+# Start and expose via Tailscale
 sudo systemctl start claude-terminal
 tailscale serve --bg 7681
 ```
@@ -122,6 +122,9 @@ tailscale serve --bg 7681
 #### Linux (Ubuntu/Debian)
 
 ```bash
+# Install Tailscale (required — protects your terminal from outside access)
+curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up
+
 # Install dependencies
 sudo apt-get install -y tmux fzf
 # ttyd: install from https://github.com/tsl0922/ttyd/releases (need 1.7.4+)
@@ -134,7 +137,7 @@ git clone https://github.com/lhymes/claude-web-terminal.git
 cd claude-web-terminal
 sudo ./install-local.sh
 
-# Start and expose
+# Start and expose via Tailscale
 sudo systemctl start claude-terminal
 tailscale serve --bg 7681
 ```
@@ -142,6 +145,9 @@ tailscale serve --bg 7681
 #### macOS
 
 ```bash
+# Install Tailscale (required — protects your terminal from outside access)
+# Download from https://tailscale.com/download and sign in
+
 # Install dependencies
 brew install ttyd tmux fzf
 
@@ -153,14 +159,14 @@ git clone https://github.com/lhymes/claude-web-terminal.git
 cd claude-web-terminal
 ./install-mac.sh
 
-# Start and expose
+# Start and expose via Tailscale
 launchctl load ~/Library/LaunchAgents/com.claude-terminal.ttyd.plist
 tailscale serve --bg 7681
 ```
 
 > macOS support is in testing. Please [report any issues](https://github.com/lhymes/claude-web-terminal/issues) for quick resolution.
 
-### Step 3: Open
+### Open
 
 Open `http://localhost:7681` (local) or your Tailscale URL (remote). Get your URL with `tailscale serve status`.
 
@@ -275,7 +281,7 @@ The systemd service auto-starts ttyd + tmux on boot. A healthcheck timer runs ev
 
 ## Security
 
-All access is through Tailscale VPN — peer-to-peer encrypted, no public internet exposure. The terminal is never accessible outside your tailnet.
+Tailscale protects your terminal connection from outside access. All traffic is encrypted end-to-end through Tailscale's peer-to-peer VPN — no data passes through a central server, and nothing is exposed to the public internet. Only devices signed into your personal Tailscale network (your "tailnet") can reach the terminal. Unauthorized users cannot connect, even if they know your machine's IP address.
 
 **Remote sudo** is an optional feature that enables passwordless sudo in the web terminal. It can be enabled or disabled during install/upgrade, or manually:
 
