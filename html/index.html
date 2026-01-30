@@ -150,6 +150,9 @@
   term.open(document.getElementById('terminal'));
 
   // ---- WebSocket ----
+  // ttyd binary protocol: first byte = command type
+  //   Send: 0 = terminal input, 1 = resize (JSON {columns, rows})
+  //   Recv: 0 = terminal output, 1 = set window title
   var ws = null;
 
   function textEncoder(str) {
@@ -199,7 +202,7 @@
       if (typeof ev.data === 'string') return;
       var data = new Uint8Array(ev.data);
       var cmd = data[0];
-      var body = data.slice(1);
+      var body = data.subarray(1);
       switch (cmd) {
         case 0: term.write(body); break;
         case 1: document.title = new TextDecoder().decode(body); break;
@@ -221,9 +224,6 @@
     fitAddon.fit();
     sendResize();
   }
-
-  window.addEventListener('resize', doFit);
-  new ResizeObserver(doFit).observe(document.getElementById('terminal'));
 
   // ---- Toolbar: Three-State Toggle ----
   // States: collapsed (handle only) → compact (primary row) → full (all rows)
@@ -272,17 +272,39 @@
       }
       termEl.style.height = 'calc(100% - ' + tbHeight + 'px)';
     }
-    setTimeout(doFit, 50);
+    doFit();
   }
 
-  window.addEventListener('resize', adjustHeight);
+  // ---- Unified Resize Handler ----
+  // Single debounced handler replaces multiple resize listeners.
+  // Handles: terminal fit, toolbar height, font size, orientation.
+  var resizeTimer;
+  var lastWidth = window.innerWidth;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function() {
+      // Update font size if width changed (orientation change)
+      var w = window.innerWidth;
+      if (w !== lastWidth) {
+        lastWidth = w;
+        var newSize = getResponsiveFontSize();
+        if (term.options.fontSize !== newSize) {
+          term.options.fontSize = newSize;
+        }
+        // Auto-collapse in landscape (wider than tall)
+        if (w > window.innerHeight && toolbarState !== 'collapsed') {
+          setToolbarState('collapsed');
+        }
+      }
+      adjustHeight();
+    }, 50);
+  });
 
   // iOS Safari: position:fixed breaks when soft keyboard opens.
   // Use visualViewport API to reposition toolbar above keyboard.
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', function() {
       var vv = window.visualViewport;
-      // Offset toolbar so it sits above the keyboard, not behind it
       toolbar.style.bottom = (window.innerHeight - vv.height - vv.offsetTop) + 'px';
       adjustHeight();
     });
@@ -291,27 +313,6 @@
       toolbar.style.bottom = (window.innerHeight - vv.height - vv.offsetTop) + 'px';
     });
   }
-
-  // ---- Orientation / Resize Response ----
-  // Auto-collapse toolbar in landscape to maximize vertical space.
-  // Update font size when screen width changes (orientation change).
-  var lastWidth = window.innerWidth;
-  window.addEventListener('resize', function() {
-    var w = window.innerWidth;
-    if (w === lastWidth) return;
-    lastWidth = w;
-
-    // Update font size for new width
-    var newSize = getResponsiveFontSize();
-    if (term.options.fontSize !== newSize) {
-      term.options.fontSize = newSize;
-    }
-
-    // Auto-collapse in landscape (wider than tall)
-    if (window.innerWidth > window.innerHeight && toolbarState !== 'collapsed') {
-      setToolbarState('collapsed');
-    }
-  });
 
   // ---- Start ----
   adjustHeight();
