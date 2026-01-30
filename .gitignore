@@ -1,5 +1,24 @@
+# Claude Code config (inherited from DevLord, not project-specific)
 .claude/
 .claudeignore
 CLAUDE.md
 *.claude
+
+# Local-only files
 install-local.sh
+PROMPT-LOG.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.bak
+*.orig

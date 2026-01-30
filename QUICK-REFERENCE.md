@@ -67,7 +67,7 @@ cls
 sudo systemctl restart claude-terminal
 
 # Clean restart (if stuck)
-zellij delete-session claude
+tmux kill-session -t claude
 sudo systemctl restart claude-terminal
 
 # View logs
