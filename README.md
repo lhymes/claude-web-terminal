@@ -19,6 +19,20 @@ The hard part isn't putting a terminal in a browser — it's making it actually 
 - **Installable as an app** — Add to Home Screen on iOS/Android for a native app experience with custom icon and full-screen display (PWA).
 - **Zero internet exposure** — All traffic encrypted through Tailscale VPN peer-to-peer. Nothing is exposed to the public internet.
 - **Upgrade-safe** — User settings (launch command, projects directory, sudo preference) are preserved across upgrades, with the option to change them.
+- **Cross-platform** — Runs on macOS, Linux, and Windows (WSL2). One-command install on each.
+
+## Platform Compatibility
+
+| Platform | Host Status | Client (Browser) |
+|----------|-------------|-------------------|
+| **macOS 13+** | Supported (in testing) | Any browser |
+| **Linux (Ubuntu 20.04+, Debian 10+)** | Fully supported | Any browser |
+| **Windows (WSL2)** | Fully supported | Any browser |
+| **iOS / Android** | Client only | Safari, Chrome (Add to Home Screen for PWA) |
+
+The server runs on macOS, Linux, or WSL2. The client is any browser on any device — phone, tablet, laptop, desktop. All clients connect to the same live tmux session.
+
+> **Note:** macOS support is in testing. Please [report any issues](https://github.com/lhymes/claude-web-terminal/issues) for quick resolution.
 
 ## Mobile-First Design
 
@@ -58,112 +72,127 @@ On screens 769px and wider, the mobile UI is hidden and replaced with a desktop-
 
 **Responsive font sizing** — Terminal font scales based on viewport width for consistent readability across screen sizes.
 
-## Prerequisites
+## Quick Install
 
-Complete these steps **before** running the installer.
-
-### 1. Windows Subsystem for Linux (WSL)
-
-You need Ubuntu running in WSL2 (20.04, 22.04, or 24.04). If you don't have it yet:
-
-```powershell
-# Run in PowerShell as Administrator
-wsl --install -d Ubuntu
-```
-
-Restart your machine when prompted, then open Ubuntu from the Start menu to finish setup.
-
-Verify systemd is enabled in `/etc/wsl.conf`:
-
-```ini
-[boot]
-systemd=true
-
-[user]
-default=your-username
-```
-
-### 2. Claude Code in WSL
-
-Install Claude Code inside your WSL Ubuntu terminal:
+### macOS
 
 ```bash
-# Install Node.js (if not already installed)
-curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-sudo apt-get install -y nodejs
+# Install dependencies
+brew install ttyd tmux fzf
 
-# Install Claude Code
-npm install -g @anthropic-ai/claude-code
-```
+# Install Claude Code (if not already installed)
+brew install --cask claude-code
 
-Run `claude` once to authenticate and confirm it's working before proceeding.
-
-### 3. Dependencies
-
-```bash
-sudo apt-get install -y tmux fzf
-```
-
-ttyd must also be installed. Check if it's available:
-
-```bash
-ttyd --version   # Need 1.7.4+
-```
-
-If not installed, build from source or install from your package manager. See [ttyd releases](https://github.com/tsl0922/ttyd/releases).
-
-### 4. Tailscale (for remote access)
-
-Tailscale creates a private encrypted network between your devices.
-
-**On your WSL host:**
-
-```bash
-curl -fsSL https://tailscale.com/install.sh | sh
-sudo tailscale up
-```
-
-**On every other device (phone, tablet, laptop):**
-
-1. Download [Tailscale](https://tailscale.com/download) for your platform
-2. Sign in with the **same account** you used in WSL
-3. Verify connectivity: `tailscale status`
-
-## Install
-
-```bash
-# Clone the repo
+# Clone and install
 git clone https://github.com/lhymes/claude-web-terminal.git
 cd claude-web-terminal
+./install-mac.sh
 
-# Run the installer
-sudo ./install-local.sh
+# Start the service
+launchctl load ~/Library/LaunchAgents/com.claude-terminal.ttyd.plist
 
 # Expose over Tailscale (for remote access)
 tailscale serve --bg 7681
+```
+
+> macOS support is in testing. Please [report any issues](https://github.com/lhymes/claude-web-terminal/issues) for quick resolution.
+
+### Linux (Ubuntu/Debian)
+
+```bash
+# Install dependencies
+sudo apt-get install -y tmux fzf
+# ttyd: install from https://github.com/tsl0922/ttyd/releases (need 1.7.4+)
+
+# Install Claude Code
+curl -fsSL https://claude.ai/install.sh | sh
+
+# Clone and install
+git clone https://github.com/lhymes/claude-web-terminal.git
+cd claude-web-terminal
+sudo ./install-local.sh
 
 # Start the service
 sudo systemctl start claude-terminal
+
+# Expose over Tailscale (for remote access)
+tailscale serve --bg 7681
 ```
 
-The installer will prompt you to configure:
-- **Claude command** — The command to launch Claude Code (default: `claude`). Use this if you have a custom alias.
-- **Projects directory** — Where your projects live (default: `~/projects`).
-- **Remote sudo** — Optionally enable passwordless sudo for the web terminal (see Security section).
+### Windows (WSL2)
 
-Settings are saved to `~/.config/claude-terminal/settings.conf` and sourced via `~/.bashrc`.
+```powershell
+# In PowerShell as Administrator (if WSL not installed)
+wsl --install -d Ubuntu
+```
+
+Then inside your Ubuntu WSL terminal:
+
+```bash
+# Verify systemd is enabled in /etc/wsl.conf:
+#   [boot]
+#   systemd=true
+
+# Install dependencies
+sudo apt-get install -y tmux fzf
+# ttyd: install from https://github.com/tsl0922/ttyd/releases (need 1.7.4+)
+
+# Install Claude Code
+curl -fsSL https://claude.ai/install.sh | sh
+
+# Clone and install
+git clone https://github.com/lhymes/claude-web-terminal.git
+cd claude-web-terminal
+sudo ./install-local.sh
+
+# Start the service
+sudo systemctl start claude-terminal
+
+# Expose over Tailscale (for remote access)
+tailscale serve --bg 7681
+```
+
+### Tailscale (all platforms)
+
+Tailscale creates a private encrypted network between your devices. Install it on both your host machine and every device you want to access from.
+
+```bash
+# Install Tailscale (Linux/WSL)
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up
+
+# macOS: download from https://tailscale.com/download
+# iOS/Android: install from App Store / Play Store
+# Sign in with the same account on every device
+```
+
+### Installer Options
+
+All installers prompt you to configure:
+- **Claude command** — The command to launch Claude Code (default: `claude`)
+- **Projects directory** — Where your projects live (default: `~/projects`)
+- **Remote sudo** — Optionally enable passwordless sudo (see Security section)
+
+Settings are saved to `~/.config/claude-terminal/settings.conf`.
 
 Open `http://localhost:7681` (local) or your Tailscale URL (remote).
 
 ## Upgrading
 
-Pull the latest code and re-run the installer:
+Pull the latest code and re-run the installer for your platform:
 
 ```bash
 cd claude-web-terminal
 git pull
+
+# Linux / WSL
 sudo ./install-local.sh
 sudo systemctl restart claude-terminal
+
+# macOS
+./install-mac.sh
+launchctl unload ~/Library/LaunchAgents/com.claude-terminal.ttyd.plist
+launchctl load ~/Library/LaunchAgents/com.claude-terminal.ttyd.plist
 ```
 
 On upgrade, the installer shows your current settings and offers to change them. Press Enter to keep everything as-is, or choose to modify your launch command, projects directory, or sudo access.
@@ -171,7 +200,11 @@ On upgrade, the installer shows your current settings and offers to change them.
 ## Uninstalling
 
 ```bash
+# Linux / WSL
 sudo ./install-local.sh --uninstall
+
+# macOS
+./install-mac.sh --uninstall
 ```
 
 This prompts for two confirmations before removing services, scripts, configuration, sudoers entries, and shell aliases. Your project files are not touched.
@@ -329,7 +362,8 @@ claude-web-terminal/
 │   ├── index.html       # Custom frontend (xterm.js + adaptive touch/desktop UI)
 │   ├── icon.svg         # App icon for PWA / home screen
 │   └── manifest.json    # Web app manifest
-├── install-local.sh     # Installer / upgrader / uninstaller
+├── install-local.sh     # Linux / WSL installer
+├── install-mac.sh       # macOS installer (in testing)
 ├── upgrade.sh           # Upgrade from Zellij version
 ├── README.md            # This file
 ├── QUICK-REFERENCE.md   # Printable cheat sheet

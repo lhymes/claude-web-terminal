@@ -116,21 +116,29 @@ Get your Tailscale URL: `tailscale serve status`
 ## Install / Upgrade / Uninstall
 
 ```bash
-# First-time install
+# Linux / WSL
 git clone https://github.com/lhymes/claude-web-terminal.git
 cd claude-web-terminal
 sudo ./install-local.sh
-tailscale serve --bg 7681
 sudo systemctl start claude-terminal
+tailscale serve --bg 7681
 
-# Upgrade (shows current settings, offers to change)
+# macOS (in testing)
+git clone https://github.com/lhymes/claude-web-terminal.git
 cd claude-web-terminal
-git pull
-sudo ./install-local.sh
-sudo systemctl restart claude-terminal
+brew install ttyd tmux fzf
+./install-mac.sh
+launchctl load ~/Library/LaunchAgents/com.claude-terminal.ttyd.plist
+tailscale serve --bg 7681
+
+# Upgrade (any platform — shows settings, offers to change)
+cd claude-web-terminal && git pull
+sudo ./install-local.sh    # Linux/WSL
+./install-mac.sh           # macOS
 
 # Uninstall (two-step confirmation, projects untouched)
-sudo ./install-local.sh --uninstall
+sudo ./install-local.sh --uninstall    # Linux/WSL
+./install-mac.sh --uninstall           # macOS
 ```
 
 ---
