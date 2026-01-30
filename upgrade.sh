@@ -15,7 +15,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 USER_NAME="${SUDO_USER:-$USER}"
-USER_HOME=$(eval echo "~$USER_NAME")
+USER_HOME=$(getent passwd "$USER_NAME" | cut -d: -f6)
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -236,22 +236,102 @@ clean_tmux() {
 # ============================================================================
 
 install_new() {
-    if [ ! -f "$SCRIPT_DIR/install.sh" ]; then
-        print_error "install.sh not found in $SCRIPT_DIR"
-        echo "  Place upgrade.sh alongside install.sh in the distribution package."
-        exit 1
-    fi
-
     echo ""
     print_status "Installing new tmux-based version..."
     echo ""
 
-    bash "$SCRIPT_DIR/install.sh"
+    # Install dependencies if missing
+    for cmd in ttyd tmux fzf; do
+        if ! command -v "$cmd" &>/dev/null; then
+            print_status "Installing $cmd..."
+            apt-get install -y "$cmd" 2>/dev/null || print_warning "$cmd not found — install manually"
+        fi
+    done
 
-    if [ -f "$SCRIPT_DIR/extras/install-extras.sh" ]; then
-        echo ""
-        bash "$SCRIPT_DIR/extras/install-extras.sh"
+    # Custom frontend
+    mkdir -p /usr/local/share/claude-terminal
+    if [ -f "$SCRIPT_DIR/html/index.html" ]; then
+        cp "$SCRIPT_DIR/html/index.html" /usr/local/share/claude-terminal/index.html
+        print_success "Custom frontend installed"
+    else
+        print_warning "html/index.html not found — skipping custom frontend"
     fi
+
+    # Systemd service
+    cat > /etc/systemd/system/claude-terminal.service << SVCEOF
+[Unit]
+Description=Claude Code Web Terminal (ttyd + tmux)
+After=network-online.target tailscaled.service
+Wants=network-online.target tailscaled.service
+
+[Service]
+Type=simple
+User=$USER_NAME
+Environment="HOME=$USER_HOME"
+Environment="TERM=xterm-256color"
+WorkingDirectory=$USER_HOME
+
+ExecStart=/usr/bin/ttyd \\
+    --writable \\
+    --port 7681 \\
+    --base-path / \\
+    --index /usr/local/share/claude-terminal/index.html \\
+    /usr/bin/tmux new-session -A -s claude
+
+Restart=always
+RestartSec=5
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=$USER_HOME
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+SVCEOF
+
+    systemctl daemon-reload
+    systemctl enable claude-terminal
+    print_success "Systemd service installed"
+
+    # tmux config
+    cat > "$USER_HOME/.tmux.conf" << 'TMUXEOF'
+set -g default-terminal "xterm-256color"
+set -g history-limit 50000
+set -g mouse on
+set -g base-index 1
+setw -g pane-base-index 1
+set -g renumber-windows on
+set -g set-clipboard on
+
+bind -n M-1 select-window -t :1
+bind -n M-2 select-window -t :2
+bind -n M-3 select-window -t :3
+bind -n M-4 select-window -t :4
+bind -n M-5 select-window -t :5
+bind -n M-6 select-window -t :6
+bind -n M-7 select-window -t :7
+bind -n M-8 select-window -t :8
+bind -n M-9 select-window -t :9
+
+set -g status on
+set -g status-position bottom
+set -g status-style "bg=#1e1e1e,fg=#d4d4d4"
+set -g status-left ""
+set -g status-right ""
+setw -g window-status-format " #I:#W "
+setw -g window-status-current-format " #I:#W "
+setw -g window-status-current-style "bg=#569cd6,fg=#1e1e1e,bold"
+setw -g window-status-style "bg=#2d2d2d,fg=#d4d4d4"
+setw -g window-status-separator ""
+set -sg escape-time 10
+TMUXEOF
+
+    chown "$USER_NAME:$USER_NAME" "$USER_HOME/.tmux.conf"
+    print_success "tmux config installed"
+
+    print_success "New tmux-based version installed"
 }
 
 # ============================================================================
