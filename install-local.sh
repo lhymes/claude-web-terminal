@@ -190,6 +190,10 @@ setw -g window-status-current-style "bg=#569cd6,fg=#1e1e1e,bold"
 setw -g window-status-style "bg=#2d2d2d,fg=#d4d4d4"
 setw -g window-status-separator ""
 
+# Report active window index via terminal title (parsed by web frontend)
+set -g set-titles on
+set -g set-titles-string "#{window_index}"
+
 # Reduce escape delay for responsive feel
 set -sg escape-time 10
 TMUX_CONFIG

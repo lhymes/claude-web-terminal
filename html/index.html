@@ -92,6 +92,9 @@
   .kb-key.active { background: #569cd6; color: #1e1e1e; }
 
   .kb-num-row .kb-key { height: 28px; font-size: 14px; }
+  .kb-key.tab-key { background: #2a4a6b; color: #7ec8ff; }
+  .kb-key.tab-key:active { background: #569cd6; color: #1e1e1e; }
+  .kb-key.tab-key.active { background: #569cd6; color: #1e1e1e; font-weight: bold; }
 
   /* Long-press hint */
   .kb-key .lp-hint {
@@ -110,6 +113,7 @@
     pointer-events: none;
   }
   .kb-popup.show { display: block; }
+  .kb-popup.kill { background: #d44; color: #fff; }
 
   /* Scroll control — joined pill, right edge */
   #scroll-btns {
@@ -143,6 +147,29 @@
     pointer-events: none;
     line-height: 1;
   }
+
+  /* Arrow keys pill (up/down cursor arrows) */
+  .arrow-pill {
+    width: 44px;
+    display: flex; flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    margin-bottom: 6px;
+    pointer-events: auto;
+  }
+  .arrow-btn {
+    width: 44px; height: 40px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    color: rgba(255,255,255,0.6);
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .arrow-btn:active { background: rgba(255,255,255,0.25); }
 
   /* ---- Tab bar (tmux window switching) ---- */
   #tab-bar {
@@ -201,6 +228,14 @@
   @media (max-width: 768px) {
     #terminal, #terminal * { touch-action: none; }
     #desktop-toolbar { display: none !important; }
+    #tab-bar { display: none; }
+  }
+  /* Landscape mobile: compact shortcut bar for max terminal lines */
+  @media (max-width: 768px) and (orientation: landscape) {
+    #shortcut-bar { padding: 1px 3px; }
+    #shortcut-bar button { height: 28px; font-size: 10px; }
+    .kb-key { height: 30px; }
+    .kb-num-row .kb-key { height: 24px; }
   }
 
   @media (min-width: 769px) {
@@ -276,6 +311,10 @@
 </div>
 
 <div id="scroll-btns">
+  <div class="arrow-pill" id="arrow-pill">
+    <button class="arrow-btn" id="arrow-up">&uarr;</button>
+    <button class="arrow-btn" id="arrow-down">&darr;</button>
+  </div>
   <div class="scroll-pill" id="scroll-pill">
     <span class="scroll-arrow">&#9650;</span>
     <span class="scroll-arrow">&#9660;</span>
@@ -296,6 +335,9 @@
   // ---- Responsive Font Size ----
   function getResponsiveFontSize() {
     var w = window.innerWidth;
+    var h = window.innerHeight;
+    // Landscape mobile: smaller font for more lines
+    if (w < 769 && w > h) return 10;
     if (w <= 360) return 11;
     if (w <= 428) return 12;
     return 14;
@@ -324,6 +366,19 @@
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
     ws.send('1' + JSON.stringify({ columns: term.cols, rows: term.rows }));
   }
+  function syncTitle(title) {
+    document.title = title;
+    var tabNum = parseInt(title, 10);
+    if (tabNum >= 1 && tabNum <= 9 && tabNum !== currentTab) {
+      currentTab = tabNum;
+      updateTab1Button();
+      updateDesktopTabs();
+      if (termcmdMode && customKb.classList.contains('visible')) {
+        buildKeyboard(TERMCMD);
+      }
+    }
+  }
+
   function connect() {
     if (ws) {
       ws.onclose = null; ws.onerror = null;
@@ -343,13 +398,13 @@
         var cmd = ev.data[0], body = ev.data.substring(1);
         switch (cmd) {
           case '0': term.write(body); break;
-          case '1': document.title = body; break;
+          case '1': syncTitle(body); break;
         }
       } else {
         var d = new Uint8Array(ev.data), cmd = String.fromCharCode(d[0]), body = d.subarray(1);
         switch (cmd) {
           case '0': term.write(body); break;
-          case '1': document.title = new TextDecoder().decode(body); break;
+          case '1': syncTitle(new TextDecoder().decode(body)); break;
         }
       }
     };
@@ -427,6 +482,7 @@
   var shiftActive = false;
   var ctrlActive = false;
   var symMode = false;         // symbols layout
+  var termcmdMode = false;     // terminal command layout
   var currentTab = 1;          // track active tmux tab
 
   // ---- Focus Management ----
@@ -463,15 +519,14 @@
     { keys: '!@#$%^&*()', cls: 'kb-num-row' },
     { keys: '~`_+=|\\{}:' },
     { keys: '"\';<>[]?', inset: true },
-    { keys: '_ABC_zxcvbnm_BKSP_', inset: false },
-    { keys: '_SYM2__CTRL__SLASH__SPACE__DOT__DASH__ENTER_', inset: false }
+    { keys: '_SYM2__ABC__CTRL__SLASH__SPACE__DOT__DASH__ENTER_', inset: false }
   ];
   var TERMCMD = [
-    { keys: '_CA__CB__CC__CD__CE__CF__CG__CH_', cls: 'kb-num-row' },
-    { keys: '_CK__CL__CN__CO__CP__CR__CS__CT_' },
-    { keys: '_CU__CV__CW__CX__CY__CZ__ESC_', inset: true },
-    { keys: '_ABC__HOME__END__PGUP__PGDN__DEL__BKSP_', inset: false },
-    { keys: '_SYM__CTRL__SLASH__SPACE__DOT__DASH__ENTER_', inset: false }
+    { keys: '_TAB1__TAB2__TAB3__TAB4__TAB5__TAB6__TAB7__TAB8__TAB9_', cls: 'kb-num-row' },
+    { keys: '_CA__CB__CC__CD__CE__CF__CG__CH_' },
+    { keys: '_CK__CL__CN__CO__CP__CR__CS__CT_', inset: true },
+    { keys: '_ABC__CU__CV__CW__CX__CY__CZ__BKSP_', inset: false },
+    { keys: '_SYM__HOME__END__PGUP__PGDN__ESC__ENTER_', inset: false }
   ];
 
   // Long-press symbol mappings for letter keys
@@ -595,6 +650,16 @@
             btn.dataset.special = 'del';
             break;
           default:
+            // Tab switching keys (TAB1-TAB9)
+            if (k.length >= 4 && k.substring(0, 3) === 'TAB') {
+              var tabN = k.charAt(3);
+              var tabNum = parseInt(tabN, 10);
+              btn.textContent = (tabNum === 1 && currentTab === 1) ? '+' : tabN;
+              btn.className += ' tab-key';
+              if (tabNum === currentTab) btn.classList.add('active');
+              btn.dataset.special = 'tab-' + tabN;
+              break;
+            }
             // Control character keys (^A through ^Z)
             if (k.length === 2 && k[0] === 'C' && k[1] >= 'A' && k[1] <= 'Z') {
               btn.textContent = '^' + k[1];
@@ -639,7 +704,6 @@
             fired = true;
             var sym = LP_MAP[ch.toLowerCase()];
             sendInput(sym);
-            // Show popup
             popup = document.createElement('div');
             popup.className = 'kb-popup show';
             popup.textContent = sym;
@@ -650,11 +714,41 @@
             }, 400);
           }, 300);
         }
+
+        // Long-press TAB key to kill that tmux window
+        var sp = btn.dataset.special;
+        if (sp && sp.indexOf('tab-') === 0) {
+          longTimer = setTimeout(function() {
+            fired = true;
+            var tn = sp.charAt(4);
+            // Show kill confirmation popup
+            popup = document.createElement('div');
+            popup.className = 'kb-popup show kill';
+            popup.textContent = 'Kill ' + tn + '?';
+            btn.appendChild(popup);
+            // Wait for confirm tap
+            var confirmTimer = setTimeout(function() {
+              if (popup && popup.parentNode) popup.parentNode.removeChild(popup);
+              popup = null;
+            }, 2000);
+            btn._killConfirm = { tab: tn, timer: confirmTimer, popup: popup };
+          }, 600);
+        }
       });
 
       btn.addEventListener('touchend', function(e) {
         e.preventDefault();
         if (longTimer) { clearTimeout(longTimer); longTimer = null; }
+        // If kill confirmation is showing, execute kill on second tap
+        if (btn._killConfirm) {
+          var kc = btn._killConfirm;
+          clearTimeout(kc.timer);
+          if (kc.popup && kc.popup.parentNode) kc.popup.parentNode.removeChild(kc.popup);
+          sendInput('tmux kill-window -t :' + kc.tab + '\r');
+          btn._killConfirm = null;
+          fired = false;
+          return;
+        }
         if (fired) return;
 
         var ch = btn.dataset.char;
@@ -697,15 +791,15 @@
               rebuildCurrent();
               break;
             case 'sym':
-              symMode = true;
+              symMode = true; termcmdMode = false;
               buildKeyboard(SYMBOLS);
               break;
             case 'sym2':
-              symMode = true;
+              symMode = true; termcmdMode = true;
               buildKeyboard(TERMCMD);
               break;
             case 'abc':
-              symMode = false;
+              symMode = false; termcmdMode = false;
               buildKeyboard(LETTERS);
               break;
             case 'esc':
@@ -727,6 +821,24 @@
               sendInput('\x1b[3~');
               break;
             default:
+              // Handle tab switching keys from terminal command keyboard
+              if (sp.indexOf('tab-') === 0) {
+                var tn = sp.charAt(4);
+                var tnNum = parseInt(tn, 10);
+                if (tnNum === 1 && currentTab === 1) {
+                  // Already on tab 1 — launch project picker
+                  sendInput('cl\r');
+                } else {
+                  sendInput('\x1b' + tn);
+                  currentTab = tnNum;
+                }
+                document.querySelectorAll('#tab-bar button').forEach(function(b) { b.classList.remove('active'); });
+                var tabBtn = document.querySelector('#tab-bar [data-tab="' + tn + '"]');
+                if (tabBtn) tabBtn.classList.add('active');
+                updateTab1Button();
+                buildKeyboard(TERMCMD);
+                break;
+              }
               // Handle ctrl-X keys from terminal command keyboard
               if (sp.indexOf('ctrl-') === 0) {
                 var letter = sp.charAt(5);
@@ -761,7 +873,7 @@
     kbVisible = true;
     customKb.classList.add('visible');
     buildKeyboard(LETTERS);
-    symMode = false; shiftActive = false; ctrlActive = false;
+    symMode = false; termcmdMode = false; shiftActive = false; ctrlActive = false;
     updateKbLabel();
     updateLayout();
   }
@@ -852,8 +964,6 @@
         var prev = currentTab > 1 ? currentTab - 1 : 9;
         sendInput('\x1b' + prev);
         currentTab = prev;
-        document.querySelectorAll('#tab-bar button').forEach(function(b) { b.classList.remove('active'); });
-        document.querySelector('#tab-bar [data-tab="' + prev + '"]').classList.add('active');
         updateTab1Button();
         if (iosKbMode) dismissAllKeyboards();
         else nokb.focus();
@@ -861,8 +971,6 @@
         var next = currentTab < 9 ? currentTab + 1 : 1;
         sendInput('\x1b' + next);
         currentTab = next;
-        document.querySelectorAll('#tab-bar button').forEach(function(b) { b.classList.remove('active'); });
-        document.querySelector('#tab-bar [data-tab="' + next + '"]').classList.add('active');
         updateTab1Button();
         if (iosKbMode) dismissAllKeyboards();
         else nokb.focus();
@@ -995,6 +1103,14 @@
       currentTab = tabNum;
       updateDesktopTabs();
     });
+    // Right-click to kill window
+    btn.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+      var n = btn.getAttribute('data-dtab');
+      if (confirm('Kill tmux window ' + n + '?')) {
+        sendInput('tmux kill-window -t :' + n + '\r');
+      }
+    });
   });
 
   updateDesktopTabs();
@@ -1120,12 +1236,6 @@
       if (scrollSpeed === 0) return;
       var lines = Math.round(scrollSpeed * 8);
       try { term.scrollLines(lines); } catch(e) {}
-      var vp = document.querySelector('.xterm-viewport');
-      if (vp) {
-        vp.dispatchEvent(new WheelEvent('wheel', {
-          deltaY: lines * 30, deltaMode: 0, bubbles: true
-        }));
-      }
     }
 
     scrollPill.addEventListener('touchstart', function(e) {
@@ -1171,6 +1281,33 @@
       if (active) stopScroll();
     });
   })();
+
+  // ---- Arrow up/down buttons (cursor keys for Claude Code selections) ----
+  var arrowUp = document.getElementById('arrow-up');
+  var arrowDown = document.getElementById('arrow-down');
+  if (arrowUp && arrowDown) {
+    var arrowRepeat = null;
+    function setupArrowBtn(btn, seq) {
+      btn.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        sendInput(seq);
+        arrowRepeat = setInterval(function() { sendInput(seq); }, 150);
+      });
+      btn.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        if (arrowRepeat) { clearInterval(arrowRepeat); arrowRepeat = null; }
+      });
+      btn.addEventListener('touchcancel', function() {
+        if (arrowRepeat) { clearInterval(arrowRepeat); arrowRepeat = null; }
+      });
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        sendInput(seq);
+      });
+    }
+    setupArrowBtn(arrowUp, '\x1b[A');
+    setupArrowBtn(arrowDown, '\x1b[B');
+  }
 
   // Reposition on layout changes
   var origUpdateLayout = updateLayout;
