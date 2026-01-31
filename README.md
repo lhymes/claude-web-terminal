@@ -44,21 +44,11 @@ The terminal interface was designed from the ground up for touch devices. Every 
 
 ### What Mobile Users Get
 
-**Tab bar** — A row of numbered buttons at the top of the screen for switching between tmux windows. Tab 1 is context-aware: when you're on it, it shows **+** and launches the project picker on tap. From any other tab, it shows **1** and navigates back.
+**Input bubble** — A floating composition area at the bottom of the screen. Tap the pill to expand it, type or dictate your message using the native iOS/Android keyboard (with autocorrect, predictive text, and dictation support), then tap **Send** to paste the text into the terminal. Press **Enter** to send, **Shift+Enter** for a newline. The bubble isolates your typing from terminal output, so Claude can churn without interfering with your input. Tap the minimize button to collapse it back to a pill showing a preview of your text.
 
-**Shortcut bar** — A persistent toolbar at the bottom with the keys you need most: Esc, Tab, Enter, arrow keys, Ctrl+C, Ctrl+D, a Ctrl modifier toggle, and a keyboard switcher. These buttons work without dismissing the active keyboard.
+**Single-finger scroll** — Swipe up or down on the terminal to scroll through history, just like scrolling a web page. The terminal is read-only on mobile — tapping it does not open a keyboard.
 
-**Dual keyboard system** — Tapping the terminal opens the native iOS/Android keyboard by default — autocorrect, predictive text, and familiar input. For terminal-specific work, tap the keyboard toggle to switch to a custom QWERTY keyboard purpose-built for the terminal:
-
-- Full QWERTY layout with a dedicated number row
-- Shift and Ctrl as sticky modifiers (tap once to activate, auto-deactivates after the next key)
-- Long-press any letter key to type its associated symbol (hints shown on each key)
-- Two symbol layout pages (#+= and 123) for full punctuation access
-- Long-press popup feedback showing which symbol was entered
-
-**Scroll pill** — A vertical drag control on the right edge of the screen for browsing terminal history. Drag up to scroll up, drag down to scroll down. Scrolling speed increases the further you drag from center, so you can scrub through long outputs quickly.
-
-**Two-finger scroll** — Drag two fingers on the terminal to scroll through history, similar to scrolling in other apps.
+**Shortcut bar** — A persistent toolbar at the bottom with the keys you need most: Esc, Tab, arrow keys (all four directions with repeat-on-hold), ^C (interrupt), tab switching arrows, and Enter. Arrow keys repeat continuously while held down for navigating Claude Code menus and selections.
 
 **Touch-optimized viewport** — The layout locks to the screen size. No accidental zooming, no page bounce, no address bar interference. The terminal fills exactly the available space, reflowing when the on-screen keyboard opens or closes.
 
@@ -269,12 +259,12 @@ If a selected project is already open in another tmux window, the launcher switc
 
 ### Mobile Tips
 
-- **Tap tab numbers** at the top to switch sessions
-- Tap **+** on tab 1 to pick a new project
-- The iOS keyboard stays open while using shortcut bar buttons
-- Use the scroll pill on the right edge to browse history
-- Two-finger drag on the terminal scrolls through history
-- Long-press a letter key for its symbol (shown as hint text)
+- Tap the **input bubble** pill to start typing or dictating
+- **Enter** sends your text; **Shift+Enter** adds a newline
+- Swipe the terminal to scroll through history
+- Use **arrow keys** in the shortcut bar to navigate menus (hold for repeat)
+- Use **^C** in the shortcut bar to interrupt Claude
+- Use **tab arrows** (◀ ▶) in the shortcut bar to switch sessions
 - Exit Claude with `/exit` when you need shell access
 
 ## Session Persistence

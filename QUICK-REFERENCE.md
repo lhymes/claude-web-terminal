@@ -43,23 +43,17 @@
 
 | Control | Where | What It Does |
 |---------|-------|--------------|
-| **Tab bar** | Top of screen | Tap numbers to switch sessions. Tab 1 shows **+** to launch picker. |
-| **Shortcut bar** | Bottom of screen | Esc, Tab, Enter, arrows, ^C, ^D, Ctrl toggle, keyboard toggle |
-| **Scroll pill** | Right edge | Drag up/down to scroll terminal history. Speed scales with distance. |
-| **Two-finger drag** | Terminal area | Scroll through terminal history |
+| **Input bubble** | Above shortcut bar | Tap pill to expand, type/dictate, tap Send to paste into terminal |
+| **Shortcut bar** | Bottom of screen | Esc, Tab, ↑↓←→ (hold to repeat), ^C, ◀▶ tab switch, Enter |
+| **Single-finger swipe** | Terminal area | Scroll through terminal history |
 
-### Keyboards
+### Input Bubble
 
-- **Tap terminal** to open iOS/Android keyboard (default)
-- **Tap ABC/X button** to toggle between native and custom keyboard
-- **Long-press ABC/X** to dismiss all keyboards
-
-### Custom Keyboard Features
-
-- Full QWERTY with dedicated number row
-- **Shift** and **Ctrl** as sticky modifiers (auto-deactivate after next key)
-- **Long-press** any letter for its symbol (hint shown on key)
-- **#+=** and **123** pages for full punctuation access
+- **Tap pill** to expand and open native keyboard (with dictation)
+- **Enter** sends text; **Shift+Enter** adds newline
+- **Minimize** (▼) collapses back to pill with text preview
+- **Clear** empties the textarea
+- Terminal is read-only on mobile — swipe to scroll, bubble to type
 
 ---
 

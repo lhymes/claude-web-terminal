@@ -30,12 +30,6 @@
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
   }
-  /* Hidden input to suppress native keyboard */
-  .kb-input {
-    position: fixed; left: -9999px; top: 0;
-    opacity: 0; width: 1px; height: 1px;
-    font-size: 16px;
-  }
 
   /* ---- Shortcut bar (always visible on mobile) ---- */
   #shortcut-bar {
@@ -56,120 +50,61 @@
   #shortcut-bar button.accent { background: #264f78; border-color: #569cd6; }
   #shortcut-bar button.active { background: #569cd6; color: #1e1e1e; }
 
-  /* ---- Custom keyboard ---- */
-  #custom-kb {
+  /* ---- Input Bubble (mobile only) ---- */
+  #input-bubble {
     flex: none;
-    background: #2c2c2e;
-    padding: 3px 2px;
+    background: transparent;
+    padding: 0 6px 4px 6px;
+    transition: all 0.2s ease;
+  }
+  #bubble-pill {
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(86, 156, 214, 0.2);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(86, 156, 214, 0.35);
+    border-radius: 20px;
+    padding: 8px 16px;
+    color: #d4d4d4; font-size: 13px; font-family: monospace;
+    cursor: pointer; min-height: 44px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #bubble-preview { opacity: 0.7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  #bubble-count { opacity: 0.5; font-size: 11px; margin-left: 8px; white-space: nowrap; }
+
+  #bubble-expanded {
     display: none;
-    -webkit-user-select: none; user-select: none;
+    background: rgba(30, 30, 30, 0.95);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid #3c3c3c;
+    border-radius: 12px;
+    padding: 8px;
   }
-  #custom-kb.visible { display: block; }
+  .bubble-expanded #bubble-pill { display: none; }
+  .bubble-expanded #bubble-expanded { display: block; }
 
-  .kb-row {
-    display: flex; justify-content: center;
-    gap: 3px; margin-bottom: 3px;
-    padding: 0 1px;
+  #bubble-input {
+    width: 100%; background: #2d2d2d; color: #d4d4d4;
+    border: 1px solid #555; border-radius: 8px;
+    padding: 10px; font-size: 16px;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    resize: none; min-height: 60px; max-height: 120px;
+    line-height: 1.4;
   }
-  .kb-row:last-child { margin-bottom: 0; }
+  #bubble-input::placeholder { color: #666; }
 
-  .kb-key {
-    height: 36px; min-width: 28px; flex: 1 1 0;
-    border: none; border-radius: 5px;
-    background: #636366; color: #fff;
-    font-family: -apple-system, system-ui, monospace;
-    font-size: 16px;
-    display: flex; align-items: center; justify-content: center;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    cursor: pointer; padding: 0;
-    position: relative;
+  #bubble-actions {
+    display: flex; gap: 6px; margin-top: 6px;
   }
-  .kb-key:active { background: #8e8e93; }
-  .kb-key.dark { background: #48484a; font-size: 13px; }
-  .kb-key.wide { flex: 1.4; }
-  .kb-key.space { flex: 4; }
-  .kb-key.active { background: #569cd6; color: #1e1e1e; }
-
-  .kb-num-row .kb-key { height: 28px; font-size: 14px; }
-  .kb-key.tab-key { background: #2a4a6b; color: #7ec8ff; }
-  .kb-key.tab-key:active { background: #569cd6; color: #1e1e1e; }
-  .kb-key.tab-key.active { background: #569cd6; color: #1e1e1e; font-weight: bold; }
-
-  /* Long-press hint */
-  .kb-key .lp-hint {
-    position: absolute; top: 2px; right: 3px;
-    font-size: 8px; color: #999; pointer-events: none;
-  }
-
-  /* Long-press popup */
-  .kb-popup {
-    display: none; position: absolute;
-    bottom: 100%; left: 50%; transform: translateX(-50%);
-    background: #569cd6; color: #1e1e1e;
-    font-size: 20px; font-weight: bold;
-    padding: 4px 12px; border-radius: 6px;
-    white-space: nowrap; z-index: 100;
-    pointer-events: none;
-  }
-  .kb-popup.show { display: block; }
-  .kb-popup.kill { background: #d44; color: #fff; }
-
-  /* Scroll control — joined pill, right edge */
-  #scroll-btns {
-    position: fixed; right: 8px; z-index: 9999;
-    pointer-events: none;
-  }
-  .scroll-pill {
-    width: 44px; height: 110px;
-    background: rgba(255,255,255,0.12);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 10px;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: space-between;
-    padding: 8px 0;
-    pointer-events: auto;
-    touch-action: none;
-    -webkit-tap-highlight-color: transparent;
-    position: relative;
-    overflow: hidden;
-  }
-  .scroll-pill::after {
-    content: '';
-    position: absolute; left: 50%; top: 50%;
-    transform: translate(-50%, -50%);
-    width: 20px; height: 1px;
-    background: rgba(255,255,255,0.2);
-  }
-  .scroll-arrow {
-    color: rgba(255,255,255,0.5);
-    font-size: 14px;
-    pointer-events: none;
-    line-height: 1;
-  }
-
-  /* Arrow keys pill (up/down cursor arrows) */
-  .arrow-pill {
-    width: 44px;
-    display: flex; flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    margin-bottom: 6px;
-    pointer-events: auto;
-  }
-  .arrow-btn {
-    width: 44px; height: 40px;
-    background: rgba(255,255,255,0.12);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 8px;
-    color: rgba(255,255,255,0.6);
-    font-size: 16px;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    touch-action: manipulation;
+  .bubble-btn {
+    flex: 1; height: 44px;
+    background: #333; border: 1px solid #555; border-radius: 8px;
+    color: #d4d4d4; font-size: 14px; font-family: monospace;
+    cursor: pointer; touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
   }
-  .arrow-btn:active { background: rgba(255,255,255,0.25); }
+  .bubble-btn:active { background: #555; }
+  .bubble-btn.accent { background: #264f78; border-color: #569cd6; color: #569cd6; }
+  .bubble-btn.accent:active { background: #3a6a9e; }
 
   /* ---- Tab bar (tmux window switching) ---- */
   #tab-bar {
@@ -226,24 +161,19 @@
   #dt-content { display: inline-flex; align-items: center; gap: 3px; }
 
   @media (max-width: 768px) {
-    #terminal, #terminal * { touch-action: none; }
     #desktop-toolbar { display: none !important; }
     #tab-bar { display: none; }
   }
-  /* Landscape mobile: compact shortcut bar for max terminal lines */
+  /* Landscape mobile: compact shortcut bar */
   @media (max-width: 768px) and (orientation: landscape) {
     #shortcut-bar { padding: 1px 3px; }
     #shortcut-bar button { height: 28px; font-size: 10px; }
-    .kb-key { height: 30px; }
-    .kb-num-row .kb-key { height: 24px; }
   }
 
   @media (min-width: 769px) {
     #tab-bar { display: none; }
     #shortcut-bar { display: none; }
-    #custom-kb { display: none !important; }
-    .kb-input { display: none; }
-    #scroll-btns { display: none; }
+    #input-bubble { display: none !important; }
     #desktop-toolbar { display: flex; }
   }
 </style>
@@ -262,26 +192,38 @@
     <button data-tab="9">9</button>
   </div>
   <div id="terminal"></div>
-  <input id="nokb" class="kb-input" inputmode="none"
-    autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-  <input id="withkb" class="kb-input" inputmode="text" type="text"
-    autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+
+  <!-- Input Bubble (mobile composition) -->
+  <div id="input-bubble">
+    <div id="bubble-pill">
+      <span id="bubble-preview">Tap to type</span>
+      <span id="bubble-count"></span>
+    </div>
+    <div id="bubble-expanded">
+      <textarea id="bubble-input" rows="3" autocomplete="off" autocorrect="on"
+        autocapitalize="sentences" spellcheck="true" enterkeyhint="send"
+        placeholder="Type or dictate..."></textarea>
+      <div id="bubble-actions">
+        <button id="bubble-min" class="bubble-btn">&#x25BC;</button>
+        <button id="bubble-clear" class="bubble-btn">Clear</button>
+        <button id="bubble-send" class="bubble-btn accent">Send</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Shortcut bar: terminal special keys -->
   <div id="shortcut-bar">
     <button data-action="escape">Esc</button>
     <button data-action="tab">Tab</button>
-    <button data-action="enter">&crarr;</button>
+    <button data-action="up">&uarr;</button>
+    <button data-action="down">&darr;</button>
     <button data-action="left">&larr;</button>
     <button data-action="right">&rarr;</button>
+    <button data-action="interrupt">^C</button>
     <button data-action="prev-tab">&#x25C0;</button>
     <button data-action="next-tab">&#x25B6;</button>
-    <button id="ctrl-toggle">Ctrl</button>
-    <button id="kb-show" class="accent">ABC</button>
+    <button data-action="enter">&crarr;</button>
   </div>
-
-  <!-- Custom QWERTY keyboard -->
-  <div id="custom-kb"></div>
 </div>
 
 <div id="desktop-toolbar">
@@ -310,16 +252,6 @@
   </span>
 </div>
 
-<div id="scroll-btns">
-  <div class="arrow-pill" id="arrow-pill">
-    <button class="arrow-btn" id="arrow-up">&uarr;</button>
-    <button class="arrow-btn" id="arrow-down">&darr;</button>
-  </div>
-  <div class="scroll-pill" id="scroll-pill">
-    <span class="scroll-arrow">&#9650;</span>
-    <span class="scroll-arrow">&#9660;</span>
-  </div>
-</div>
 <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
 <script>
@@ -336,7 +268,6 @@
   function getResponsiveFontSize() {
     var w = window.innerWidth;
     var h = window.innerHeight;
-    // Landscape mobile: smaller font for more lines
     if (w < 769 && w > h) return 10;
     if (w <= 360) return 11;
     if (w <= 428) return 12;
@@ -362,10 +293,22 @@
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
     ws.send('0' + data);
   }
+  function sendInputChunked(text) {
+    var chunk = 4096;
+    if (text.length <= chunk) { sendInput(text); return; }
+    for (var i = 0; i < text.length; i += chunk) {
+      (function(part, delay) {
+        setTimeout(function() { sendInput(part); }, delay);
+      })(text.substring(i, i + chunk), (i / chunk) * 50);
+    }
+  }
   function sendResize() {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
     ws.send('1' + JSON.stringify({ columns: term.cols, rows: term.rows }));
   }
+
+  var currentTab = 1;
+
   function syncTitle(title) {
     document.title = title;
     var tabNum = parseInt(title, 10);
@@ -373,9 +316,6 @@
       currentTab = tabNum;
       updateTab1Button();
       updateDesktopTabs();
-      if (termcmdMode && customKb.classList.contains('visible')) {
-        buildKeyboard(TERMCMD);
-      }
     }
   }
 
@@ -417,16 +357,14 @@
   }
   term.onData(function(data) { sendInput(data); });
 
-  // Desktop mouse mode toggle: "Select" mode (default) suppresses mouse
-  // tracking so the browser handles text selection and copy/paste natively.
-  // "Mouse" mode lets xterm.js handle mouse events for tmux scrolling/clicking.
-  var desktopMouseMode = false; // false = Select (suppress), true = Mouse (passthrough)
+  // Desktop mouse mode toggle
+  var desktopMouseMode = false;
   if (!isMobile) {
     var mouseTrackParams = { 9:1, 1000:1, 1001:1, 1002:1, 1003:1, 1006:1, 1015:1 };
     term.parser.registerCsiHandler({ prefix: '?', final: 'h' }, function(params) {
-      if (desktopMouseMode) return false; // Mouse mode: let xterm.js handle it
+      if (desktopMouseMode) return false;
       for (var i = 0; i < params.length; i++) {
-        if (mouseTrackParams[params[i]]) return true; // Select mode: swallow
+        if (mouseTrackParams[params[i]]) return true;
       }
       return false;
     });
@@ -437,21 +375,18 @@
       dtMouseBtn.textContent = desktopMouseMode ? 'Scroll' : 'Select';
       dtMouseBtn.classList.toggle('accent', !desktopMouseMode);
       if (desktopMouseMode) {
-        // Re-enable mouse tracking in xterm.js by writing enable sequences
         term.write('\x1b[?1000h\x1b[?1006h');
       } else {
-        // Disable mouse tracking in xterm.js
         term.write('\x1b[?1000l\x1b[?1003l\x1b[?1006l');
       }
       term.focus();
     });
   }
 
-  // Desktop copy/paste: Ctrl+Shift+C/V, and Ctrl+C copies when text selected
+  // Desktop copy/paste
   if (!isMobile) {
     term.attachCustomKeyEventHandler(function(ev) {
       if (ev.type !== 'keydown') return true;
-      // Ctrl+Shift+C or Ctrl+C with selection → copy
       if (ev.ctrlKey && ev.key === 'c' && term.hasSelection()) {
         navigator.clipboard.writeText(term.getSelection());
         term.clearSelection();
@@ -461,7 +396,6 @@
         if (term.hasSelection()) navigator.clipboard.writeText(term.getSelection());
         return false;
       }
-      // Ctrl+Shift+V → paste
       if (ev.ctrlKey && ev.shiftKey && ev.key === 'V') {
         navigator.clipboard.readText().then(function(t) { sendInput(t); });
         return false;
@@ -474,428 +408,88 @@
 
   // ---- State ----
   var container = document.getElementById('container');
-  var customKb = document.getElementById('custom-kb');
-  var nokb = document.getElementById('nokb');
-  var withkb = document.getElementById('withkb');
-  var kbVisible = false;       // custom keyboard shown
-  var iosKbMode = false;       // iOS native keyboard mode
-  var shiftActive = false;
-  var ctrlActive = false;
-  var symMode = false;         // symbols layout
-  var termcmdMode = false;     // terminal command layout
-  var currentTab = 1;          // track active tmux tab
 
-  // ---- Focus Management ----
-  function maintainFocus() {
-    if (!isMobile) return;
-    if (iosKbMode) {
-      withkb.focus();
+  // ---- Input Bubble (mobile) ----
+  var bubble = document.getElementById('input-bubble');
+  var bubblePill = document.getElementById('bubble-pill');
+  var bubbleInput = document.getElementById('bubble-input');
+  var bubblePreview = document.getElementById('bubble-preview');
+  var bubbleCount = document.getElementById('bubble-count');
+  var bubbleSend = document.getElementById('bubble-send');
+  var bubbleMin = document.getElementById('bubble-min');
+  var bubbleClear = document.getElementById('bubble-clear');
+  var bubbleIsExpanded = false;
+
+  function expandBubble() {
+    bubbleIsExpanded = true;
+    bubble.className = 'bubble-expanded';
+    bubbleInput.focus();
+    updateLayout();
+  }
+
+  function minimizeBubble() {
+    bubbleIsExpanded = false;
+    bubble.className = '';
+    bubbleInput.blur();
+    updateBubblePill();
+    updateLayout();
+  }
+
+  function updateBubblePill() {
+    var text = bubbleInput.value;
+    if (text.length === 0) {
+      bubblePreview.textContent = 'Tap to type';
+      bubbleCount.textContent = '';
     } else {
-      nokb.focus();
+      bubblePreview.textContent = text.length > 30 ? text.substring(0, 30) + '\u2026' : text;
+      bubbleCount.textContent = text.length + '';
     }
   }
 
-  // Forward iOS keyboard input
-  function onHiddenInput(e) {
-    var val = e.target.value;
-    if (val) { sendInput(val); e.target.value = ''; }
-  }
-  nokb.addEventListener('input', onHiddenInput);
-  withkb.addEventListener('input', onHiddenInput);
-  withkb.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') { e.preventDefault(); sendInput('\r'); }
-  });
+  if (isMobile) {
+    bubblePill.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      expandBubble();
+    });
 
-  // ---- Custom Keyboard ----
-  // Layout definitions
-  var LETTERS = [
-    { keys: '1234567890', cls: 'kb-num-row' },
-    { keys: 'qwertyuiop' },
-    { keys: 'asdfghjkl', inset: true },
-    { keys: '_SHIFT_zxcvbnm_BKSP_', inset: false },
-    { keys: '_SYM__CTRL__SLASH__SPACE__DOT__DASH__ENTER_', inset: false }
-  ];
-  var SYMBOLS = [
-    { keys: '!@#$%^&*()', cls: 'kb-num-row' },
-    { keys: '~`_+=|\\{}:' },
-    { keys: '"\';<>[]?', inset: true },
-    { keys: '_SYM2__ABC__CTRL__SLASH__SPACE__DOT__DASH__ENTER_', inset: false }
-  ];
-  var TERMCMD = [
-    { keys: '_TAB1__TAB2__TAB3__TAB4__TAB5__TAB6__TAB7__TAB8__TAB9_', cls: 'kb-num-row' },
-    { keys: '_CA__CB__CC__CD__CE__CF__CG__CH_' },
-    { keys: '_CK__CL__CN__CO__CP__CR__CS__CT_', inset: true },
-    { keys: '_ABC__CU__CV__CW__CX__CY__CZ__BKSP_', inset: false },
-    { keys: '_SYM__HOME__END__PGUP__PGDN__ESC__ENTER_', inset: false }
-  ];
-
-  // Long-press symbol mappings for letter keys
-  var LP_MAP = {
-    'q':'!','w':'@','e':'#','r':'$','t':'%','y':'^','u':'&','i':'*','o':'(','p':')',
-    'a':'~','s':'`','d':'_','f':'+','g':'=','h':'|','j':'\\','k':'{','l':'}',
-    'z':'"','x':"'",'c':';','v':'<','b':'>','n':'[','m':']'
-  };
-
-  function buildKeyboard(layout) {
-    customKb.innerHTML = '';
-    layout.forEach(function(rowDef) {
-      var row = document.createElement('div');
-      row.className = 'kb-row' + (rowDef.cls ? ' ' + rowDef.cls : '');
-
-      // Parse keys - special keys wrapped in underscores
-      var keys = [];
-      var i = 0, str = rowDef.keys;
-      while (i < str.length) {
-        if (str[i] === '_') {
-          var end = str.indexOf('_', i + 1);
-          if (end !== -1) {
-            keys.push(str.substring(i + 1, end));
-            i = end + 1;
-          } else {
-            keys.push(str[i]); i++;
-          }
-        } else {
-          keys.push(str[i]); i++;
-        }
+    bubbleSend.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      var text = bubbleInput.value;
+      if (text) {
+        sendInputChunked(text);
+        bubbleInput.value = '';
       }
-
-      keys.forEach(function(k) {
-        var btn = document.createElement('button');
-        btn.className = 'kb-key';
-
-        switch (k) {
-          case 'SHIFT':
-            btn.textContent = '\u21e7';
-            btn.className += ' dark wide';
-            btn.dataset.special = 'shift';
-            if (shiftActive) btn.classList.add('active');
-            break;
-          case 'BKSP':
-            btn.textContent = '\u232b';
-            btn.className += ' dark wide';
-            btn.dataset.special = 'bksp';
-            break;
-          case 'SYM':
-            btn.textContent = '#+=';
-            btn.className += ' dark wide';
-            btn.dataset.special = 'sym';
-            break;
-          case 'SYM2':
-            btn.textContent = 'Cmd';
-            btn.className += ' dark wide';
-            btn.dataset.special = 'sym2';
-            break;
-          case 'ABC':
-            btn.textContent = 'ABC';
-            btn.className += ' dark wide';
-            btn.dataset.special = 'abc';
-            break;
-          case 'CTRL':
-            btn.textContent = 'Ctrl';
-            btn.className += ' dark';
-            btn.dataset.special = 'ctrl';
-            if (ctrlActive) btn.classList.add('active');
-            break;
-          case 'SPACE':
-            btn.textContent = ' ';
-            btn.className += ' space';
-            btn.dataset.char = ' ';
-            break;
-          case 'ENTER':
-            btn.textContent = '\u21b5';
-            btn.className += ' dark';
-            btn.style.flex = '1.2';
-            btn.dataset.special = 'enter';
-            break;
-          case 'SLASH':
-            btn.textContent = '/';
-            btn.dataset.char = '/';
-            break;
-          case 'DOT':
-            btn.textContent = '.';
-            btn.dataset.char = '.';
-            break;
-          case 'DASH':
-            btn.textContent = '-';
-            btn.dataset.char = '-';
-            break;
-          case 'ESC':
-            btn.textContent = 'Esc';
-            btn.className += ' dark';
-            btn.dataset.special = 'esc';
-            break;
-          case 'HOME':
-            btn.textContent = 'Home';
-            btn.className += ' dark';
-            btn.dataset.special = 'home';
-            break;
-          case 'END':
-            btn.textContent = 'End';
-            btn.className += ' dark';
-            btn.dataset.special = 'end';
-            break;
-          case 'PGUP':
-            btn.textContent = 'PgUp';
-            btn.className += ' dark';
-            btn.dataset.special = 'pgup';
-            break;
-          case 'PGDN':
-            btn.textContent = 'PgDn';
-            btn.className += ' dark';
-            btn.dataset.special = 'pgdn';
-            break;
-          case 'DEL':
-            btn.textContent = 'Del';
-            btn.className += ' dark';
-            btn.dataset.special = 'del';
-            break;
-          default:
-            // Tab switching keys (TAB1-TAB9)
-            if (k.length >= 4 && k.substring(0, 3) === 'TAB') {
-              var tabN = k.charAt(3);
-              var tabNum = parseInt(tabN, 10);
-              btn.textContent = (tabNum === 1 && currentTab === 1) ? '+' : tabN;
-              btn.className += ' tab-key';
-              if (tabNum === currentTab) btn.classList.add('active');
-              btn.dataset.special = 'tab-' + tabN;
-              break;
-            }
-            // Control character keys (^A through ^Z)
-            if (k.length === 2 && k[0] === 'C' && k[1] >= 'A' && k[1] <= 'Z') {
-              btn.textContent = '^' + k[1];
-              btn.className += ' dark';
-              btn.dataset.special = 'ctrl-' + k[1].toLowerCase();
-              break;
-            }
-            // Regular character key
-            var display = (shiftActive && k.length === 1 && k >= 'a' && k <= 'z') ? k.toUpperCase() : k;
-            btn.textContent = display;
-            btn.dataset.char = k;
-            // Add long-press hint for letter keys
-            if (LP_MAP[k] && !symMode) {
-              var hint = document.createElement('span');
-              hint.className = 'lp-hint';
-              hint.textContent = LP_MAP[k];
-              btn.appendChild(hint);
-            }
-            break;
-        }
-
-        row.appendChild(btn);
-      });
-
-      customKb.appendChild(row);
+      minimizeBubble();
     });
 
-    // Wire up touch events
-    customKb.querySelectorAll('.kb-key').forEach(function(btn) {
-      var longTimer = null;
-      var fired = false;
-      var popup = null;
-
-      btn.addEventListener('touchstart', function(e) {
+    bubbleInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        fired = false;
-        var ch = btn.dataset.char;
-
-        // Long-press for symbol hint
-        if (ch && LP_MAP[ch.toLowerCase()] && !symMode) {
-          longTimer = setTimeout(function() {
-            fired = true;
-            var sym = LP_MAP[ch.toLowerCase()];
-            sendInput(sym);
-            popup = document.createElement('div');
-            popup.className = 'kb-popup show';
-            popup.textContent = sym;
-            btn.appendChild(popup);
-            setTimeout(function() {
-              if (popup && popup.parentNode) popup.parentNode.removeChild(popup);
-              popup = null;
-            }, 400);
-          }, 300);
+        var text = bubbleInput.value;
+        if (text) {
+          sendInputChunked(text);
+          bubbleInput.value = '';
         }
-
-        // Long-press TAB key to kill that tmux window
-        var sp = btn.dataset.special;
-        if (sp && sp.indexOf('tab-') === 0) {
-          longTimer = setTimeout(function() {
-            fired = true;
-            var tn = sp.charAt(4);
-            // Show kill confirmation popup
-            popup = document.createElement('div');
-            popup.className = 'kb-popup show kill';
-            popup.textContent = 'Kill ' + tn + '?';
-            btn.appendChild(popup);
-            // Wait for confirm tap
-            var confirmTimer = setTimeout(function() {
-              if (popup && popup.parentNode) popup.parentNode.removeChild(popup);
-              popup = null;
-            }, 2000);
-            btn._killConfirm = { tab: tn, timer: confirmTimer, popup: popup };
-          }, 600);
-        }
-      });
-
-      btn.addEventListener('touchend', function(e) {
-        e.preventDefault();
-        if (longTimer) { clearTimeout(longTimer); longTimer = null; }
-        // If kill confirmation is showing, execute kill on second tap
-        if (btn._killConfirm) {
-          var kc = btn._killConfirm;
-          clearTimeout(kc.timer);
-          if (kc.popup && kc.popup.parentNode) kc.popup.parentNode.removeChild(kc.popup);
-          sendInput('tmux kill-window -t :' + kc.tab + '\r');
-          btn._killConfirm = null;
-          fired = false;
-          return;
-        }
-        if (fired) return;
-
-        var ch = btn.dataset.char;
-        var sp = btn.dataset.special;
-
-        if (ch) {
-          var out = ch;
-          if (shiftActive && ch.length === 1 && ch >= 'a' && ch <= 'z') {
-            out = ch.toUpperCase();
-          }
-          if (ctrlActive && out.length === 1) {
-            // Ctrl+letter: send control character
-            var code = out.toUpperCase().charCodeAt(0) - 64;
-            if (code >= 0 && code <= 31) {
-              sendInput(String.fromCharCode(code));
-            }
-            ctrlActive = false;
-            rebuildCurrent();
-            return;
-          }
-          sendInput(out);
-          if (shiftActive) {
-            shiftActive = false;
-            rebuildCurrent();
-          }
-        } else if (sp) {
-          switch (sp) {
-            case 'shift':
-              shiftActive = !shiftActive;
-              rebuildCurrent();
-              break;
-            case 'bksp':
-              sendInput('\x7f');
-              break;
-            case 'enter':
-              sendInput('\r');
-              break;
-            case 'ctrl':
-              ctrlActive = !ctrlActive;
-              rebuildCurrent();
-              break;
-            case 'sym':
-              symMode = true; termcmdMode = false;
-              buildKeyboard(SYMBOLS);
-              break;
-            case 'sym2':
-              symMode = true; termcmdMode = true;
-              buildKeyboard(TERMCMD);
-              break;
-            case 'abc':
-              symMode = false; termcmdMode = false;
-              buildKeyboard(LETTERS);
-              break;
-            case 'esc':
-              sendInput('\x1b');
-              break;
-            case 'home':
-              sendInput('\x1b[H');
-              break;
-            case 'end':
-              sendInput('\x1b[F');
-              break;
-            case 'pgup':
-              sendInput('\x1b[5~');
-              break;
-            case 'pgdn':
-              sendInput('\x1b[6~');
-              break;
-            case 'del':
-              sendInput('\x1b[3~');
-              break;
-            default:
-              // Handle tab switching keys from terminal command keyboard
-              if (sp.indexOf('tab-') === 0) {
-                var tn = sp.charAt(4);
-                var tnNum = parseInt(tn, 10);
-                if (tnNum === 1 && currentTab === 1) {
-                  // Already on tab 1 — launch project picker
-                  sendInput('cl\r');
-                } else {
-                  sendInput('\x1b' + tn);
-                  currentTab = tnNum;
-                }
-                document.querySelectorAll('#tab-bar button').forEach(function(b) { b.classList.remove('active'); });
-                var tabBtn = document.querySelector('#tab-bar [data-tab="' + tn + '"]');
-                if (tabBtn) tabBtn.classList.add('active');
-                updateTab1Button();
-                buildKeyboard(TERMCMD);
-                break;
-              }
-              // Handle ctrl-X keys from terminal command keyboard
-              if (sp.indexOf('ctrl-') === 0) {
-                var letter = sp.charAt(5);
-                var ctrlCode = letter.toUpperCase().charCodeAt(0) - 64;
-                if (ctrlCode >= 0 && ctrlCode <= 31) {
-                  sendInput(String.fromCharCode(ctrlCode));
-                }
-              }
-              break;
-          }
-        }
-      });
-
-      btn.addEventListener('touchcancel', function() {
-        if (longTimer) { clearTimeout(longTimer); longTimer = null; }
-      });
+        minimizeBubble();
+      }
     });
+
+    bubbleMin.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      minimizeBubble();
+    });
+
+    bubbleClear.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      bubbleInput.value = '';
+      updateBubblePill();
+      bubbleInput.focus();
+    });
+
+    bubbleInput.addEventListener('input', updateBubblePill);
   }
 
-  function rebuildCurrent() {
-    if (symMode) buildKeyboard(SYMBOLS);
-    else buildKeyboard(LETTERS);
-  }
-
-  // ---- Keyboard show/hide ----
-  function updateKbLabel() {
-    var btn = document.getElementById('kb-show');
-    btn.textContent = (iosKbMode || kbVisible) ? '\u2715' : 'ABC';
-  }
-
-  function showCustomKb() {
-    kbVisible = true;
-    customKb.classList.add('visible');
-    buildKeyboard(LETTERS);
-    symMode = false; termcmdMode = false; shiftActive = false; ctrlActive = false;
-    updateKbLabel();
-    updateLayout();
-  }
-
-  function hideCustomKb() {
-    kbVisible = false;
-    customKb.classList.remove('visible');
-    updateKbLabel();
-    updateLayout();
-  }
-
-  function dismissAllKeyboards() {
-    hideCustomKb();
-    iosKbMode = false;
-    nokb.focus();
-    updateKbLabel();
-  }
-
-  // ---- Shortcut Bar ----
-  var kbShowBtn = document.getElementById('kb-show');
-  var ctrlToggleBtn = document.getElementById('ctrl-toggle');
-
+  // ---- Shortcut Bar (mobile) ----
   function setupTouchBtn(btn, fn) {
     var touchHandled = false;
     btn.addEventListener('touchstart', function(e) { e.preventDefault(); });
@@ -911,75 +505,51 @@
     });
   }
 
-  // ABC/dismiss button: tap = cycle keyboards, long-press = dismiss all
-  var abcLongTimer = null, abcFired = false;
-  kbShowBtn.addEventListener('touchstart', function(e) {
-    e.preventDefault();
-    abcFired = false;
-    abcLongTimer = setTimeout(function() {
-      abcFired = true;
-      dismissAllKeyboards();
-    }, 500);
-  });
-  kbShowBtn.addEventListener('touchend', function(e) {
-    e.preventDefault();
-    if (abcLongTimer) { clearTimeout(abcLongTimer); abcLongTimer = null; }
-    if (abcFired) return;
-    if (iosKbMode) {
-      // iOS KB visible -> dismiss all
-      dismissAllKeyboards();
-    } else if (kbVisible) {
-      // Custom KB visible -> switch to iOS KB
-      hideCustomKb();
-      iosKbMode = true;
-      withkb.focus();
-      updateKbLabel();
-    } else {
-      // No KB -> show custom KB
-      showCustomKb();
-    }
-  });
-  kbShowBtn.addEventListener('click', function(e) {
-    e.preventDefault();
-    if (!('ontouchend' in window)) {
-      // Desktop: toggle custom kb
-      if (kbVisible) hideCustomKb();
-      else showCustomKb();
-    }
-  });
-
-  // Ctrl toggle in shortcut bar
-  setupTouchBtn(ctrlToggleBtn, function() {
-    ctrlActive = !ctrlActive;
-    ctrlToggleBtn.classList.toggle('active', ctrlActive);
-    if (kbVisible) rebuildCurrent();
-    maintainFocus();
-  });
-
-  // Action buttons in shortcut bar
+  // Shortcut bar buttons with repeat-on-hold for arrows
   document.querySelectorAll('#shortcut-bar [data-action]').forEach(function(btn) {
-    setupTouchBtn(btn, function() {
-      var action = btn.getAttribute('data-action');
-      if (action === 'prev-tab') {
-        var prev = currentTab > 1 ? currentTab - 1 : 9;
-        sendInput('\x1b' + prev);
-        currentTab = prev;
+    var action = btn.getAttribute('data-action');
+    var isArrow = (action === 'up' || action === 'down' || action === 'left' || action === 'right');
+
+    if (action === 'prev-tab' || action === 'next-tab') {
+      setupTouchBtn(btn, function() {
+        if (action === 'prev-tab') {
+          var prev = currentTab > 1 ? currentTab - 1 : 9;
+          sendInput('\x1b' + prev);
+          currentTab = prev;
+        } else {
+          var next = currentTab < 9 ? currentTab + 1 : 1;
+          sendInput('\x1b' + next);
+          currentTab = next;
+        }
         updateTab1Button();
-        if (iosKbMode) dismissAllKeyboards();
-        else nokb.focus();
-      } else if (action === 'next-tab') {
-        var next = currentTab < 9 ? currentTab + 1 : 1;
-        sendInput('\x1b' + next);
-        currentTab = next;
-        updateTab1Button();
-        if (iosKbMode) dismissAllKeyboards();
-        else nokb.focus();
-      } else {
-        var seq = ACTIONS[action];
+        updateDesktopTabs();
+      });
+    } else if (isArrow) {
+      // Arrows get repeat-on-hold
+      var seq = ACTIONS[action];
+      var repeatTimer = null;
+      btn.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        sendInput(seq);
+        repeatTimer = setInterval(function() { sendInput(seq); }, 150);
+      });
+      btn.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        if (repeatTimer) { clearInterval(repeatTimer); repeatTimer = null; }
+      });
+      btn.addEventListener('touchcancel', function() {
+        if (repeatTimer) { clearInterval(repeatTimer); repeatTimer = null; }
+      });
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        sendInput(seq);
+      });
+    } else {
+      var seq = ACTIONS[action];
+      setupTouchBtn(btn, function() {
         if (seq) sendInput(seq);
-        maintainFocus();
-      }
-    });
+      });
+    }
   });
 
   // ---- Tab bar ----
@@ -1001,25 +571,18 @@
       var tabNum = parseInt(n, 10);
 
       if (tabNum === 1 && currentTab === 1) {
-        // Already on tab 1 — launch project picker
         sendInput('cl\r');
       } else {
-        // Switch to the requested tab
         sendInput('\x1b' + n);
         currentTab = tabNum;
       }
 
-      // Highlight active tab
       document.querySelectorAll('#tab-bar button').forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
       updateTab1Button();
-      // Dismiss iOS keyboard when switching tabs
-      if (iosKbMode) dismissAllKeyboards();
-      else nokb.focus();
     });
   });
 
-  // Initialize tab 1 as active
   tab1Btn.classList.add('active');
   updateTab1Button();
 
@@ -1043,7 +606,6 @@
     var dtMiniNew = document.getElementById('dt-mini-new');
 
     dtMiniNew.addEventListener('click', function() {
-      // Same as + New: switch to tab 1, clear, launch picker
       sendInput('\x1b1');
       currentTab = 1;
       updateDesktopTabs();
@@ -1078,12 +640,11 @@
   var dtNewSession = document.getElementById('dt-new-session');
   if (dtNewSession) {
     dtNewSession.addEventListener('click', function() {
-      // Alt+1 to switch to window 1, then clear screen and launch project picker
       sendInput('\x1b1');
       currentTab = 1;
       updateDesktopTabs();
       setTimeout(function() {
-        sendInput('\x0c');  // Ctrl+L: clear screen
+        sendInput('\x0c');
         setTimeout(function() { sendInput('cl\r'); }, 100);
       }, 150);
     });
@@ -1103,7 +664,6 @@
       currentTab = tabNum;
       updateDesktopTabs();
     });
-    // Right-click to kill window
     btn.addEventListener('contextmenu', function(e) {
       e.preventDefault();
       var n = btn.getAttribute('data-dtab');
@@ -1114,27 +674,6 @@
   });
 
   updateDesktopTabs();
-
-  // Terminal tap — open iOS keyboard by default
-  if (isMobile) {
-    document.getElementById('terminal').addEventListener('touchend', function(e) {
-      if (window.getSelection().toString()) return;
-      // Don't focus if tap was near the scroll control (right 60px)
-      if (e.changedTouches && e.changedTouches[0]) {
-        var tx = e.changedTouches[0].clientX;
-        if (tx > window.innerWidth - 60) return;
-      }
-      if (kbVisible) {
-        // Custom KB showing — close it, open iOS KB
-        hideCustomKb();
-      }
-      if (!iosKbMode) {
-        iosKbMode = true;
-        withkb.focus();
-        updateKbLabel();
-      }
-    });
-  }
 
   // ---- Layout ----
   function updateLayout() {
@@ -1169,154 +708,55 @@
     });
   }
 
-  // Prevent iOS viewport scrolling
-  document.addEventListener('touchmove', function(e) {
-    e.preventDefault();
-  }, { passive: false });
+  // ---- Mobile single-finger scroll on terminal ----
+  if (isMobile) {
+    (function() {
+      var termEl = document.getElementById('terminal');
+      var startY = null, accum = 0, scrolling = false;
 
-  // Two-finger swipe on terminal area scrolls buffer
-  (function() {
-    var termEl = document.getElementById('terminal');
-    var startY = null, accum = 0, scrolling = false;
-
-    termEl.addEventListener('touchstart', function(e) {
-      if (e.touches.length === 2) {
-        scrolling = true;
-        startY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-        accum = 0;
-      }
-    }, { passive: true });
-
-    termEl.addEventListener('touchmove', function(e) {
-      if (scrolling && e.touches.length === 2) {
-        var y = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-        accum += (startY - y);
-        startY = y;
-        var lines = Math.trunc(accum / 15);
-        if (lines !== 0) {
-          term.scrollLines(lines);
-          accum -= lines * 15;
+      termEl.addEventListener('touchstart', function(e) {
+        if (e.touches.length === 1) {
+          startY = e.touches[0].clientY;
+          accum = 0;
+          scrolling = false;
         }
-      }
-    }, { passive: true });
+      }, { passive: true });
 
-    termEl.addEventListener('touchend', function() {
-      scrolling = false; startY = null; accum = 0;
-    });
-    termEl.addEventListener('touchcancel', function() {
-      scrolling = false; startY = null; accum = 0;
-    });
-  })();
+      termEl.addEventListener('touchmove', function(e) {
+        if (e.touches.length === 1 && startY !== null) {
+          e.preventDefault();
+          scrolling = true;
+          var y = e.touches[0].clientY;
+          accum += (startY - y);
+          startY = y;
+          var lines = Math.trunc(accum / 15);
+          if (lines !== 0) {
+            term.scrollLines(lines);
+            accum -= lines * 15;
+          }
+        }
+      }, { passive: false });
 
-  // ---- Scroll pill control ----
-  var scrollBtnsDiv = document.getElementById('scroll-btns');
-  var scrollPill = document.getElementById('scroll-pill');
+      termEl.addEventListener('touchend', function() {
+        scrolling = false; startY = null; accum = 0;
+      });
+      termEl.addEventListener('touchcancel', function() {
+        scrolling = false; startY = null; accum = 0;
+      });
+    })();
 
-  function positionScrollBtns() {
-    var bar = document.getElementById('shortcut-bar');
-    var barRect = bar.getBoundingClientRect();
-    scrollBtnsDiv.style.bottom = (window.innerHeight - barRect.top + 8) + 'px';
+    // Prevent page-level bounce/scroll on non-terminal elements
+    document.addEventListener('touchmove', function(e) {
+      // Allow terminal scroll (handled above) and bubble textarea scroll
+      var target = e.target;
+      if (target.id === 'bubble-input') return;
+      var termEl = document.getElementById('terminal');
+      if (termEl && termEl.contains(target)) return;
+      e.preventDefault();
+    }, { passive: false });
   }
 
-  (function setupScrollPill() {
-    var active = false;
-    var scrollInterval = null;
-    var scrollSpeed = 0;
-
-    function getSpeed(clientY) {
-      var rect = scrollPill.getBoundingClientRect();
-      var relY = Math.max(0, Math.min(rect.height, clientY - rect.top));
-      var pct = (relY / rect.height - 0.5) * 2; // -1 to 1
-      // Dead zone in center
-      if (Math.abs(pct) < 0.15) return 0;
-      return pct;
-    }
-
-    function doScroll() {
-      if (scrollSpeed === 0) return;
-      var lines = Math.round(scrollSpeed * 8);
-      try { term.scrollLines(lines); } catch(e) {}
-    }
-
-    scrollPill.addEventListener('touchstart', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      active = true;
-      scrollSpeed = getSpeed(e.touches[0].clientY);
-      doScroll();
-      scrollInterval = setInterval(doScroll, 80);
-    });
-
-    scrollPill.addEventListener('touchmove', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      if (active) scrollSpeed = getSpeed(e.touches[0].clientY);
-    });
-
-    function stopScroll() {
-      active = false;
-      scrollSpeed = 0;
-      if (scrollInterval) { clearInterval(scrollInterval); scrollInterval = null; }
-    }
-
-    scrollPill.addEventListener('touchend', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      stopScroll();
-    });
-    scrollPill.addEventListener('touchcancel', stopScroll);
-
-    // Desktop fallback
-    scrollPill.addEventListener('mousedown', function(e) {
-      e.preventDefault();
-      active = true;
-      scrollSpeed = getSpeed(e.clientY);
-      doScroll();
-      scrollInterval = setInterval(doScroll, 80);
-    });
-    document.addEventListener('mousemove', function(e) {
-      if (active) scrollSpeed = getSpeed(e.clientY);
-    });
-    document.addEventListener('mouseup', function() {
-      if (active) stopScroll();
-    });
-  })();
-
-  // ---- Arrow up/down buttons (cursor keys for Claude Code selections) ----
-  var arrowUp = document.getElementById('arrow-up');
-  var arrowDown = document.getElementById('arrow-down');
-  if (arrowUp && arrowDown) {
-    var arrowRepeat = null;
-    function setupArrowBtn(btn, seq) {
-      btn.addEventListener('touchstart', function(e) {
-        e.preventDefault();
-        sendInput(seq);
-        arrowRepeat = setInterval(function() { sendInput(seq); }, 150);
-      });
-      btn.addEventListener('touchend', function(e) {
-        e.preventDefault();
-        if (arrowRepeat) { clearInterval(arrowRepeat); arrowRepeat = null; }
-      });
-      btn.addEventListener('touchcancel', function() {
-        if (arrowRepeat) { clearInterval(arrowRepeat); arrowRepeat = null; }
-      });
-      btn.addEventListener('click', function(e) {
-        e.preventDefault();
-        sendInput(seq);
-      });
-    }
-    setupArrowBtn(arrowUp, '\x1b[A');
-    setupArrowBtn(arrowDown, '\x1b[B');
-  }
-
-  // Reposition on layout changes
-  var origUpdateLayout = updateLayout;
-  updateLayout = function() {
-    origUpdateLayout();
-    positionScrollBtns();
-  };
-
-// ---- Start ----
+  // ---- Start ----
   updateLayout();
   connect();
 })();
