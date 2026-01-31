@@ -152,9 +152,10 @@ Settings are stored in `~/.config/claude-terminal/settings.conf`:
 CLAUDE_CMD="claude"                    # Command to launch Claude Code
 CLAUDE_PROJECTS_DIR="$HOME/projects"   # Where projects are stored
 REMOTE_SUDO="no"                       # Passwordless sudo (yes/no)
+REMOTE_SUDO_LOCKED="no"               # Lock sudo off permanently (yes/no)
 ```
 
-Edit the file and run `source ~/.bashrc` to apply, or re-run `sudo ./install-local.sh` to change settings interactively.
+Edit the file and run `source ~/.bashrc` to apply, or re-run `sudo ./install-local.sh` to change settings interactively. When sudo is locked off, upgrades skip the sudo prompt. Uninstall and reinstall to change a locked setting.
 
 **Security:** Tailscale protects your terminal from outside access. Only devices on your personal Tailscale network can connect — nothing is exposed to the public internet.
 

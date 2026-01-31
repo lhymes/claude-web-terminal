@@ -281,7 +281,6 @@ ExecStart=/usr/bin/ttyd \\
 Restart=always
 RestartSec=5
 
-NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=read-only
 ReadWritePaths=$USER_HOME

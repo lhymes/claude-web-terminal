@@ -230,8 +230,7 @@ ExecStart=/usr/bin/ttyd \\
 Restart=always
 RestartSec=5
 
-# Security hardening
-NoNewPrivileges=true
+# Security hardening (NoNewPrivileges set after settings are configured)
 ProtectSystem=strict
 ProtectHome=read-only
 ReadWritePaths=$USER_HOME
@@ -515,11 +514,13 @@ touch "$MARKER_FILE"
 user_cmd="claude"
 user_projects="$USER_HOME/projects"
 user_sudo_enabled="no"
+user_sudo_locked="no"
 if [[ -f "$SETTINGS_FILE" ]]; then
     source "$SETTINGS_FILE"
     user_cmd="${CLAUDE_CMD:-claude}"
     user_projects="${CLAUDE_PROJECTS_DIR:-$USER_HOME/projects}"
     user_sudo_enabled="${REMOTE_SUDO:-no}"
+    user_sudo_locked="${REMOTE_SUDO_LOCKED:-no}"
 fi
 
 CONFIGURE_SETTINGS=true
@@ -528,7 +529,11 @@ if [[ "$IS_UPGRADE" == true ]]; then
     print_info "Current settings:"
     echo "  Claude command:    $user_cmd"
     echo "  Projects directory: $user_projects"
-    echo "  Remote sudo:       $user_sudo_enabled"
+    if [[ "$user_sudo_locked" == "yes" ]]; then
+        echo "  Remote sudo:       disabled (locked)"
+    else
+        echo "  Remote sudo:       $user_sudo_enabled"
+    fi
     echo ""
     read -p "Change any settings? [y/N]: " change_settings < /dev/tty
     [[ "$change_settings" != "y" && "$change_settings" != "Y" ]] && CONFIGURE_SETTINGS=false
@@ -552,15 +557,32 @@ if [[ "$CONFIGURE_SETTINGS" == true ]]; then
         print_success "Created projects directory: $user_projects"
     fi
 
-    if prompt_remote_sudo; then
-        user_sudo_enabled="yes"
+    if [[ "$user_sudo_locked" == "yes" ]]; then
+        echo ""
+        echo -e "${YELLOW}── Remote Sudo Access ──${NC}"
+        echo -e "  Remote sudo is ${RED}permanently disabled (locked)${NC}."
+        echo "  To change this, uninstall first: sudo ./install-local.sh --uninstall"
+        echo ""
     else
-        # If was enabled and user declined, remove sudoers
-        if [[ "$user_sudo_enabled" == "yes" ]]; then
-            rm -f /etc/sudoers.d/claude-terminal
-            print_info "Remote sudo disabled"
+        if prompt_remote_sudo; then
+            user_sudo_enabled="yes"
+        else
+            # If was enabled and user declined, remove sudoers
+            if [[ "$user_sudo_enabled" == "yes" ]]; then
+                rm -f /etc/sudoers.d/claude-terminal
+                print_info "Remote sudo disabled"
+            fi
+            user_sudo_enabled="no"
+
+            echo ""
+            echo "  Lock this setting permanently? Future upgrades will skip this prompt."
+            echo "  To enable sudo later, you must uninstall and reinstall."
+            read -p "  Lock sudo off? [y/N]: " lock_sudo < /dev/tty
+            if [[ "$lock_sudo" == "y" || "$lock_sudo" == "Y" ]]; then
+                user_sudo_locked="yes"
+                print_success "Remote sudo permanently locked off"
+            fi
         fi
-        user_sudo_enabled="no"
     fi
 fi
 
@@ -573,9 +595,24 @@ cat > "$SETTINGS_FILE" << SETTINGS
 CLAUDE_CMD="$user_cmd"
 CLAUDE_PROJECTS_DIR="$user_projects"
 REMOTE_SUDO="$user_sudo_enabled"
+REMOTE_SUDO_LOCKED="$user_sudo_locked"
 SETTINGS
 chown "$USER_NAME:$USER_NAME" "$SETTINGS_FILE"
 print_success "Settings saved to $SETTINGS_FILE"
+
+# Apply NoNewPrivileges based on remote sudo setting
+SERVICE_FILE="/etc/systemd/system/claude-terminal.service"
+if [[ "$user_sudo_enabled" == "yes" ]]; then
+    # Remove NoNewPrivileges if present (sudo requires privilege escalation)
+    sed -i '/^NoNewPrivileges=/d' "$SERVICE_FILE"
+    print_success "NoNewPrivileges disabled (remote sudo enabled)"
+else
+    # Add NoNewPrivileges if not present
+    if ! grep -q '^NoNewPrivileges=' "$SERVICE_FILE"; then
+        sed -i '/^# Security hardening/a NoNewPrivileges=true' "$SERVICE_FILE"
+    fi
+fi
+systemctl daemon-reload
 
 # Add bashrc block (if not already present)
 if ! grep -qF "$BASHRC_START" "$USER_HOME/.bashrc" 2>/dev/null; then

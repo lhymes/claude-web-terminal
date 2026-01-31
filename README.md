@@ -22,7 +22,7 @@ The hard part isn't putting a terminal in a browser — it's making it actually 
 - **One-click session launcher** — Select projects from a fuzzy-search picker. Already-open projects switch to the existing window instead of creating duplicates.
 - **Installable as an app** — Add to Home Screen on iOS/Android for a native app experience with custom icon and full-screen display (PWA).
 - **Protected by Tailscale** — Your terminal is never exposed to the public internet. All traffic is encrypted end-to-end through Tailscale's peer-to-peer VPN. Only devices signed into your personal Tailscale network can connect.
-- **Upgrade-safe** — User settings (launch command, projects directory, sudo preference) are preserved across upgrades, with the option to change them.
+- **Upgrade-safe** — User settings (launch command, projects directory, sudo preference) are preserved across upgrades, with the option to change them. Sudo can be permanently locked off to skip the prompt on future upgrades.
 - **Cross-platform** — Runs on macOS, Linux, and Windows (WSL2). One-command install on each.
 
 ## Platform Compatibility
@@ -183,7 +183,7 @@ On your phone: open the URL in Safari/Chrome, then **Add to Home Screen** for a 
 All installers prompt you to configure:
 - **Claude command** — The command to launch Claude Code (default: `claude`)
 - **Projects directory** — Where your projects live (default: `~/projects`)
-- **Remote sudo** — Optionally enable passwordless sudo (see Security section)
+- **Remote sudo** — Optionally enable passwordless sudo (see Security section). Can be permanently locked off to skip the prompt on future upgrades.
 
 Settings are saved to `~/.config/claude-terminal/settings.conf`.
 
@@ -227,9 +227,12 @@ User settings are stored in `~/.config/claude-terminal/settings.conf`:
 CLAUDE_CMD="claude"                    # Command to launch Claude Code
 CLAUDE_PROJECTS_DIR="$HOME/projects"   # Where projects are stored
 REMOTE_SUDO="no"                       # Passwordless sudo (yes/no)
+REMOTE_SUDO_LOCKED="no"               # Lock sudo off permanently (yes/no)
 ```
 
 Edit this file directly to change settings. Changes take effect on next shell login (or run `source ~/.bashrc`). You can also change settings by re-running `sudo ./install-local.sh`.
+
+When `REMOTE_SUDO_LOCKED` is set to `yes`, the installer skips the sudo prompt on upgrades. To re-enable sudo after locking it off, uninstall and reinstall.
 
 ## Daily Usage
 
@@ -289,7 +292,7 @@ The systemd service auto-starts ttyd + tmux on boot. A healthcheck timer runs ev
 
 Tailscale protects your terminal connection from outside access. All traffic is encrypted end-to-end through Tailscale's peer-to-peer VPN — no data passes through a central server, and nothing is exposed to the public internet. Only devices signed into your personal Tailscale network (your "tailnet") can reach the terminal. Unauthorized users cannot connect, even if they know your machine's IP address.
 
-**Remote sudo** is an optional feature that enables passwordless sudo in the web terminal. It can be enabled or disabled during install/upgrade, or manually:
+**Remote sudo** is an optional feature that enables passwordless sudo in the web terminal. It can be enabled or disabled during install/upgrade. When declining sudo, the installer offers to lock the setting permanently so future upgrades skip the prompt entirely (uninstall and reinstall to change a locked setting). You can also configure sudo manually:
 
 ```bash
 # Enable
@@ -301,6 +304,8 @@ sudo rm /etc/sudoers.d/claude-terminal
 ```
 
 **If you enable remote sudo:** anyone with access to your terminal session has root access. Only use this with Tailscale VPN. Never expose ttyd directly to the internet or local network. Your device security (screen lock, passwords) is your last line of defense.
+
+**Service hardening:** When remote sudo is disabled, the systemd service runs with `NoNewPrivileges=true` to prevent privilege escalation. When sudo is enabled, this restriction is removed so `sudo` can function correctly.
 
 ## Upgrading from Zellij Version
 
