@@ -44,11 +44,11 @@ The terminal interface was designed from the ground up for touch devices. Every 
 
 ### What Mobile Users Get
 
-**Input bubble** — A floating composition area at the bottom of the screen. Tap the pill to expand it, type or dictate your message using the native iOS/Android keyboard (with autocorrect, predictive text, and dictation support), then tap **Send** to paste the text into the terminal. Press **Enter** to send, **Shift+Enter** for a newline. The bubble isolates your typing from terminal output, so Claude can churn without interfering with your input. Tap the minimize button to collapse it back to a pill showing a preview of your text.
+**Input bubble** — A floating composition area at the bottom of the screen. Tap the pill to expand it, type or dictate your message using the native iOS/Android keyboard (with autocorrect, predictive text, and dictation support), then tap **Send** to paste the text into the terminal. Press **Enter** to send, **Shift+Enter** for a newline. The bubble isolates your typing from terminal output, so Claude can churn without interfering with your input. Tap the minimize button to collapse it back to a pill showing a preview of your text. Two small **Esc** and **Enter** tabs protrude from the top-right of the bubble for quick access without expanding it.
 
 **Single-finger scroll** — Swipe up or down on the terminal to scroll through history, just like scrolling a web page. The terminal is read-only on mobile — tapping it does not open a keyboard.
 
-**Shortcut bar** — A persistent toolbar at the bottom with the keys you need most: Esc, Tab, arrow keys (all four directions with repeat-on-hold), ^C (interrupt), tab switching arrows, and Enter. Arrow keys repeat continuously while held down for navigating Claude Code menus and selections.
+**Shortcut bar** — A persistent toolbar at the bottom with two switchable modes. **Keys mode** (default): Tab, arrow keys (all four directions with repeat-on-hold), ^C (interrupt), + (new session), and tab navigation arrows (◀ ▶). **Tabs mode**: numbered buttons 1-9 for direct session switching with active tab highlighting. Tap the **⌨** button (rightmost) to toggle between modes.
 
 **Touch-optimized viewport** — The layout locks to the screen size. No accidental zooming, no page bounce, no address bar interference. The terminal fills exactly the available space, reflowing when the on-screen keyboard opens or closes.
 
@@ -56,15 +56,15 @@ The terminal interface was designed from the ground up for touch devices. Every 
 
 On screens 769px and wider, the mobile UI is hidden and replaced with a desktop-optimized experience:
 
-**Scroll / Select toggle** — By default, text selection and copy/paste work natively in the browser. Click **Scroll** in the toolbar to enable scroll-wheel navigation through terminal history. Click **Select** to switch back to text selection mode.
+**Scroll / Select toggle** — By default, text selection and copy/paste work natively in the browser. Click the mode icon in the toolbar to enable scroll-wheel navigation through terminal history. Click again to switch back to text selection mode. The icon changes between a monitor (select) and mouse (scroll) to indicate the current mode.
 
-**Copy/paste shortcuts** — Ctrl+Shift+C and Ctrl+Shift+V for clipboard operations. Ctrl+C also copies when text is selected (sends interrupt only when nothing is selected). These work in Select mode.
+**Copy/paste shortcuts** — Ctrl+Shift+C and Ctrl+Shift+V for clipboard operations. Ctrl+C also copies when text is selected (sends interrupt only when nothing is selected). These work in select mode.
 
 **Floating toolbar** — A compact overlay in the bottom-right corner with:
-- **Mode: Select / Scroll** toggle to switch between text selection and scroll-wheel navigation
+- **Mode toggle** icon to switch between text selection and scroll-wheel navigation
 - **Tab: + New** button to launch the project picker (switches to window 1, clears the screen, runs `cl`)
 - Clickable tab buttons (1-9) to switch tmux windows with active tab highlighting
-- **Collapse arrow** to minimize the toolbar to three small buttons: previous tab, next tab, and mode toggle — useful when tmux tab names overlap the toolbar
+- **Collapse arrow** to minimize the toolbar to four small buttons: mode toggle, + new, previous tab, and next tab — useful when tmux tab names overlap the toolbar
 
 **Responsive font sizing** — Terminal font scales based on viewport width for consistent readability across screen sizes.
 
@@ -237,7 +237,7 @@ If a selected project is already open in another tmux window, the launcher switc
 ### Switch Between Sessions
 
 - **Keyboard:** `Alt+1` through `Alt+9`
-- **Mobile:** Tap numbered buttons in the tab bar at the top of the screen
+- **Mobile:** Tap **⌨** in the shortcut bar to switch to tabs mode, then tap numbered buttons 1-9
 - **Desktop:** Click tab buttons in the floating toolbar (bottom-right corner)
 
 ### Commands
@@ -261,10 +261,13 @@ If a selected project is already open in another tmux window, the launcher switc
 
 - Tap the **input bubble** pill to start typing or dictating
 - **Enter** sends your text; **Shift+Enter** adds a newline
+- Use **Esc** and **Enter** tabs on the bubble for quick key presses without expanding
 - Swipe the terminal to scroll through history
 - Use **arrow keys** in the shortcut bar to navigate menus (hold for repeat)
 - Use **^C** in the shortcut bar to interrupt Claude
-- Use **tab arrows** (◀ ▶) in the shortcut bar to switch sessions
+- Tap **+** in the shortcut bar to start a new session
+- Tap **⌨** to switch the shortcut bar to session tabs (1-9), tap again to switch back
+- Use **tab arrows** (◀ ▶) in keys mode to cycle through sessions
 - Exit Claude with `/exit` when you need shell access
 
 ## Session Persistence

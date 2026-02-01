@@ -13,7 +13,7 @@
 | Method | How |
 |--------|-----|
 | Keyboard | `Alt+1` through `Alt+9` |
-| Mobile | Tap numbered buttons in tab bar (top of screen) |
+| Mobile | Tap **⌨** to switch shortcut bar to tabs mode, then tap 1-9 |
 | Desktop | Click tab buttons in floating toolbar (bottom-right) |
 | New session | Click **+ New** in desktop toolbar (or tap **+** on mobile) |
 
@@ -44,13 +44,16 @@
 | Control | Where | What It Does |
 |---------|-------|--------------|
 | **Input bubble** | Above shortcut bar | Tap pill to expand, type/dictate, tap Send to paste into terminal |
-| **Shortcut bar** | Bottom of screen | Esc, Tab, ↑↓←→ (hold to repeat), ^C, ◀▶ tab switch, Enter |
+| **Shortcut bar** (keys mode) | Bottom of screen | Tab, ↑↓←→ (hold to repeat), ^C, +, ◀▶ tab nav, ⌨ swap |
+| **Shortcut bar** (tabs mode) | Bottom of screen | 1-9 session buttons (active highlighted), ⌨ swap |
+| **Bubble tabs** | Top-right of bubble | Esc and Enter — always visible |
 | **Single-finger swipe** | Terminal area | Scroll through terminal history |
 
 ### Input Bubble
 
 - **Tap pill** to expand and open native keyboard (with dictation)
 - **Enter** sends text; **Shift+Enter** adds newline
+- **Esc / Enter tabs** on top-right of bubble — send keys without expanding
 - **Minimize** (▼) collapses back to pill with text preview
 - **Clear** empties the textarea
 - Terminal is read-only on mobile — swipe to scroll, bubble to type
@@ -62,11 +65,11 @@
 | Feature | Details |
 |---------|---------|
 | **Text selection** (default) | Click and drag to select text, right-click to copy/paste |
-| **Scroll mode** | Click **Scroll** in toolbar — enables scroll wheel through terminal history |
+| **Scroll mode** | Click mode icon in toolbar — enables scroll wheel through terminal history |
 | **Copy** | Ctrl+Shift+C, or Ctrl+C when text is selected |
 | **Paste** | Ctrl+Shift+V |
-| **Floating toolbar** | Bottom-right: Mode toggle, **+ New**, tab buttons (1-9), collapse arrow |
-| **Collapsed toolbar** | Three mini buttons: ◀ prev tab, ▶ next tab, S/M mode toggle |
+| **Floating toolbar** | Bottom-right: Mode icon, **+ New**, tab buttons (1-9), collapse arrow |
+| **Collapsed toolbar** | Four mini buttons: mode icon, +, ◀ prev tab, ▶ next tab |
 
 ---
 
