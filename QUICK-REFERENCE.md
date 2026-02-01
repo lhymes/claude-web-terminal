@@ -43,19 +43,20 @@
 
 | Control | Where | What It Does |
 |---------|-------|--------------|
-| **Input bubble** | Above shortcut bar | Tap pill to expand, type/dictate, tap Send to paste into terminal |
-| **Shortcut bar** (keys mode) | Bottom of screen | Tab, ↑↓←→ (hold to repeat), ^C, +, ◀▶ tab nav, ⌨ swap |
+| **Input bubble** | Below tmux tabs | Tap pill to expand, type/dictate, tap Send to paste into terminal |
+| **^C / Return** | Next to pill | Quick interrupt and enter without expanding bubble |
+| **Shortcut bar** (keys mode) | Bottom of screen | Tab, Esc, ↑↓←→ (hold to repeat), +, ◀▶ tab nav, ⌨ swap |
 | **Shortcut bar** (tabs mode) | Bottom of screen | 1-9 session buttons (active highlighted), ⌨ swap |
-| **Bubble tabs** | Top-right of bubble | Esc and Enter — always visible |
 | **Single-finger swipe** | Terminal area | Scroll through terminal history |
 
 ### Input Bubble
 
 - **Tap pill** to expand and open native keyboard (with dictation)
 - **Enter** sends text; **Shift+Enter** adds newline
-- **Esc / Enter tabs** on top-right of bubble — send keys without expanding
-- **Minimize** (▼) collapses back to pill with text preview
+- **^C / Return** buttons next to pill — send keys without expanding
+- **Minimize** (▼) collapses back to compact pill with text preview
 - **Clear** empties the textarea
+- **↑↓** buttons recall command history in expanded mode
 - Terminal is read-only on mobile — swipe to scroll, bubble to type
 
 ---

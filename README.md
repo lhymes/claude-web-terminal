@@ -44,11 +44,11 @@ The terminal interface was designed from the ground up for touch devices. Every 
 
 ### What Mobile Users Get
 
-**Input bubble** — A floating composition area at the bottom of the screen. Tap the pill to expand it, type or dictate your message using the native iOS/Android keyboard (with autocorrect, predictive text, and dictation support), then tap **Send** to paste the text into the terminal. Press **Enter** to send, **Shift+Enter** for a newline. The bubble isolates your typing from terminal output, so Claude can churn without interfering with your input. Tap the minimize button to collapse it back to a pill showing a preview of your text. Two small **Esc** and **Enter** tabs protrude from the top-right of the bubble for quick access without expanding it.
+**Input bubble** — A floating composition area at the bottom of the screen, just below the tmux tab bar. Tap the pill to expand it, type or dictate your message using the native iOS/Android keyboard (with autocorrect, predictive text, and dictation support), then tap **Send** to paste the text into the terminal. Press **Enter** to send, **Shift+Enter** for a newline. The bubble isolates your typing from terminal output, so Claude can churn without interfering with your input. Tap the minimize button to collapse it back to a compact pill showing a preview of your text. **^C** and **Return** buttons sit alongside the pill for quick interrupt and enter without expanding. Command history is preserved — use the **↑↓** buttons in the expanded bubble to recall previous inputs.
 
 **Single-finger scroll** — Swipe up or down on the terminal to scroll through history, just like scrolling a web page. The terminal is read-only on mobile — tapping it does not open a keyboard.
 
-**Shortcut bar** — A persistent toolbar at the bottom with two switchable modes. **Keys mode** (default): Tab, arrow keys (all four directions with repeat-on-hold), ^C (interrupt), + (new session), and tab navigation arrows (◀ ▶). **Tabs mode**: numbered buttons 1-9 for direct session switching with active tab highlighting. Tap the **⌨** button (rightmost) to toggle between modes.
+**Shortcut bar** — A persistent toolbar at the bottom with two switchable modes. **Keys mode** (default): Tab, Esc, arrow keys (all four directions with repeat-on-hold), + (new session), and tab navigation arrows (◀ ▶). **Tabs mode**: numbered buttons 1-9 for direct session switching with active tab highlighting. Tap the **⌨** button (rightmost) to toggle between modes.
 
 **Touch-optimized viewport** — The layout locks to the screen size. No accidental zooming, no page bounce, no address bar interference. The terminal fills exactly the available space, reflowing when the on-screen keyboard opens or closes.
 
@@ -261,10 +261,9 @@ If a selected project is already open in another tmux window, the launcher switc
 
 - Tap the **input bubble** pill to start typing or dictating
 - **Enter** sends your text; **Shift+Enter** adds a newline
-- Use **Esc** and **Enter** tabs on the bubble for quick key presses without expanding
+- Use **^C** and **Return** buttons next to the pill for quick interrupt/enter without expanding
 - Swipe the terminal to scroll through history
 - Use **arrow keys** in the shortcut bar to navigate menus (hold for repeat)
-- Use **^C** in the shortcut bar to interrupt Claude
 - Tap **+** in the shortcut bar to start a new session
 - Tap **⌨** to switch the shortcut bar to session tabs (1-9), tap again to switch back
 - Use **tab arrows** (◀ ▶) in keys mode to cycle through sessions

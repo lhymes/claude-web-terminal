@@ -26,7 +26,7 @@
   }
 
   #terminal {
-    flex: 1; min-height: 0; width: 100%;
+    flex: 1; min-height: 0; width: 100%; overflow: hidden;
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
   }
@@ -41,7 +41,7 @@
     background: #252526; border-top: 1px solid #3c3c3c;
   }
   #shortcut-bar button {
-    flex: 1 1 0; min-width: 32px; height: 34px;
+    flex: 1 1 0; min-width: 32px; height: 30px;
     background: #333; border: 1px solid #555; border-radius: 5px;
     color: #d4d4d4; font-size: 12px; font-family: monospace;
     cursor: pointer; touch-action: manipulation;
@@ -60,22 +60,29 @@
   #input-bubble {
     flex: none;
     background: transparent;
-    padding: 0 6px 4px 6px;
+    padding: 0 4px 1px 4px;
     transition: all 0.2s ease;
     position: relative;
   }
+  /* Minimized: compact pill + action buttons in a single row */
+  #input-bubble:not(.bubble-expanded) {
+    display: flex; align-items: center; gap: 3px; flex-wrap: nowrap;
+    padding: 0 4px 1px 4px;
+  }
+  #input-bubble:not(.bubble-expanded) #bubble-row { flex: 1; }
+  #input-bubble:not(.bubble-expanded) #bubble-tabs { padding: 0; }
+  #input-bubble:not(.bubble-expanded) #bubble-expanded { display: none; }
   #bubble-tabs {
-    position: absolute;
-    top: -22px; right: 10px;
-    display: flex; gap: 2px;
+    display: flex;
+    gap: 3px;
     z-index: 1;
+    justify-content: flex-end;
+    padding: 0 2px 2px 0;
   }
   #bubble-tabs button {
-    height: 22px; min-width: 36px;
-    background: #333; border: 1px solid #555;
-    border-bottom: none;
-    border-radius: 5px 5px 0 0;
-    color: #d4d4d4; font-size: 11px; font-family: monospace;
+    height: 30px; min-width: 40px;
+    background: #333; border: 1px solid #555; border-radius: 5px;
+    color: #d4d4d4; font-size: 12px; font-family: monospace;
     cursor: pointer; touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
     padding: 0 6px;
@@ -87,9 +94,9 @@
     backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
     border: 1px solid rgba(86, 156, 214, 0.35);
     border-radius: 20px;
-    padding: 8px 16px;
+    padding: 6px 14px;
     color: #d4d4d4; font-size: 13px; font-family: monospace;
-    cursor: pointer; min-height: 44px;
+    cursor: pointer; min-height: 36px;
     -webkit-tap-highlight-color: transparent;
   }
   #bubble-preview { opacity: 0.7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
@@ -103,7 +110,7 @@
     border-radius: 12px;
     padding: 8px;
   }
-  .bubble-expanded #bubble-pill { display: none; }
+  .bubble-expanded #bubble-row { display: none; }
   .bubble-expanded #bubble-expanded { display: block; }
 
   #bubble-input {
@@ -116,8 +123,12 @@
   }
   #bubble-input::placeholder { color: #666; }
 
+  #bubble-history-indicator {
+    display: none; font-size: 11px; color: #888; font-family: monospace;
+    margin-left: auto; padding: 0 4px; white-space: nowrap;
+  }
   #bubble-actions {
-    display: flex; gap: 6px; margin-top: 6px;
+    display: flex; gap: 6px; margin-top: 6px; align-items: center;
   }
   .bubble-btn {
     flex: 1; height: 44px;
@@ -127,6 +138,7 @@
     -webkit-tap-highlight-color: transparent;
   }
   .bubble-btn:active { background: #555; }
+  .bubble-half { flex: 0.5; min-width: 0; padding: 0; }
   .bubble-btn.accent { background: #264f78; border-color: #569cd6; color: #569cd6; }
   .bubble-btn.accent:active { background: #3a6a9e; }
 
@@ -190,7 +202,7 @@
   }
   /* Landscape mobile: compact shortcut bar */
   @media (max-width: 768px) and (orientation: landscape) {
-    #shortcut-bar { padding: 1px 3px; }
+    #shortcut-bar { padding: 1px 3px 0 3px; }
     #shortcut-bar button { height: 28px; font-size: 10px; }
   }
 
@@ -219,13 +231,15 @@
 
   <!-- Input Bubble (mobile composition) -->
   <div id="input-bubble">
-    <div id="bubble-tabs">
-      <button id="btn-esc">Esc</button>
-      <button id="btn-enter">&#x21B5;</button>
+    <div id="bubble-row">
+      <div id="bubble-pill">
+        <span id="bubble-preview">Tap to type</span>
+        <span id="bubble-count"></span>
+      </div>
     </div>
-    <div id="bubble-pill">
-      <span id="bubble-preview">Tap to type</span>
-      <span id="bubble-count"></span>
+    <div id="bubble-tabs">
+      <button id="btn-interrupt">^C</button>
+      <button id="btn-enter">&#x21B5;</button>
     </div>
     <div id="bubble-expanded">
       <textarea id="bubble-input" rows="3" autocomplete="off" autocorrect="on"
@@ -234,7 +248,9 @@
       <div id="bubble-actions">
         <button id="bubble-min" class="bubble-btn">&#x25BC;</button>
         <button id="bubble-clear" class="bubble-btn">Clear</button>
+        <button id="bubble-history-up" class="bubble-btn bubble-half">&#x2191;</button><button id="bubble-history-down" class="bubble-btn bubble-half">&#x2193;</button>
         <button id="bubble-send" class="bubble-btn accent">Send</button>
+        <span id="bubble-history-indicator"></span>
       </div>
     </div>
   </div>
@@ -243,11 +259,11 @@
   <div id="shortcut-bar">
     <span id="kb-keys">
       <button data-action="tab">Tab</button>
+      <button data-action="escape">Esc</button>
       <button data-action="up">&uarr;</button>
       <button data-action="down">&darr;</button>
       <button data-action="left">&larr;</button>
       <button data-action="right">&rarr;</button>
-      <button data-action="interrupt">^C</button>
       <button data-action="new-session">+</button>
       <button data-action="prev-tab">&#x25C0;</button>
       <button data-action="next-tab">&#x25B6;</button>
@@ -468,6 +484,32 @@
   var bubbleClear = document.getElementById('bubble-clear');
   var bubbleIsExpanded = false;
 
+  // ---- Chat Bubble History ----
+  var bubbleHistory = JSON.parse(localStorage.getItem('bubble-history') || '[]');
+  var historyIdx = -1;
+  var historyDraft = '';
+  var historyIndicator = document.getElementById('bubble-history-indicator');
+
+  function saveHistory(text) {
+    if (!text) return;
+    if (bubbleHistory.length > 0 && bubbleHistory[bubbleHistory.length - 1] === text) return;
+    bubbleHistory.push(text);
+    if (bubbleHistory.length > 100) bubbleHistory = bubbleHistory.slice(-100);
+    localStorage.setItem('bubble-history', JSON.stringify(bubbleHistory));
+    historyIdx = -1;
+    historyDraft = '';
+    updateHistoryIndicator();
+  }
+
+  function updateHistoryIndicator() {
+    if (historyIdx < 0) {
+      historyIndicator.style.display = 'none';
+    } else {
+      historyIndicator.style.display = '';
+      historyIndicator.textContent = '\u2191 ' + (bubbleHistory.length - historyIdx) + '/' + bubbleHistory.length;
+    }
+  }
+
   function expandBubble() {
     bubbleIsExpanded = true;
     bubble.className = 'bubble-expanded';
@@ -477,6 +519,10 @@
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
     updateLayout();
+    // Delayed refit to catch keyboard animation completing
+    setTimeout(updateLayout, 150);
+    setTimeout(updateLayout, 400);
+    if (bubbleHistory.length > 0) updateHistoryIndicator();
   }
 
   function minimizeBubble() {
@@ -488,6 +534,9 @@
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
     updateLayout();
+    // Delayed refit to catch keyboard dismiss animation
+    setTimeout(updateLayout, 150);
+    setTimeout(updateLayout, 400);
   }
 
   function updateBubblePill() {
@@ -511,6 +560,7 @@
       e.preventDefault();
       var text = bubbleInput.value;
       if (text) {
+        saveHistory(text);
         sendInputChunked(text);
         bubbleInput.value = '';
       }
@@ -522,10 +572,31 @@
         e.preventDefault();
         var text = bubbleInput.value;
         if (text) {
+          saveHistory(text);
           sendInputChunked(text);
           bubbleInput.value = '';
         }
         minimizeBubble();
+      } else if (e.key === 'ArrowUp' && bubbleInput.selectionStart === 0 && bubbleHistory.length > 0) {
+        e.preventDefault();
+        if (historyIdx < 0) historyDraft = bubbleInput.value;
+        if (historyIdx < bubbleHistory.length - 1) {
+          historyIdx = historyIdx < 0 ? bubbleHistory.length - 1 : historyIdx - 1;
+          bubbleInput.value = bubbleHistory[historyIdx];
+          updateBubblePill();
+          updateHistoryIndicator();
+        }
+      } else if (e.key === 'ArrowDown' && historyIdx >= 0) {
+        e.preventDefault();
+        if (historyIdx < bubbleHistory.length - 1) {
+          historyIdx++;
+          bubbleInput.value = bubbleHistory[historyIdx];
+        } else {
+          historyIdx = -1;
+          bubbleInput.value = historyDraft;
+        }
+        updateBubblePill();
+        updateHistoryIndicator();
       }
     });
 
@@ -539,6 +610,32 @@
       bubbleInput.value = '';
       updateBubblePill();
       bubbleInput.focus();
+    });
+
+    var bubbleHistoryUp = document.getElementById('bubble-history-up');
+    var bubbleHistoryDown = document.getElementById('bubble-history-down');
+    bubbleHistoryUp.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      if (bubbleHistory.length === 0) return;
+      if (historyIdx < 0) historyDraft = bubbleInput.value;
+      historyIdx = historyIdx < 0 ? bubbleHistory.length - 1 : (historyIdx > 0 ? historyIdx - 1 : bubbleHistory.length - 1);
+      bubbleInput.value = bubbleHistory[historyIdx];
+      updateBubblePill();
+      updateHistoryIndicator();
+    });
+    bubbleHistoryDown.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      if (bubbleHistory.length === 0) return;
+      if (historyIdx < 0) return;
+      if (historyIdx < bubbleHistory.length - 1) {
+        historyIdx++;
+        bubbleInput.value = bubbleHistory[historyIdx];
+      } else {
+        historyIdx = -1;
+        bubbleInput.value = historyDraft;
+      }
+      updateBubblePill();
+      updateHistoryIndicator();
     });
 
     bubbleInput.addEventListener('input', updateBubblePill);
@@ -560,8 +657,8 @@
     });
   }
 
-  // Bubble Esc/Enter tabs
-  setupTouchBtn(document.getElementById('btn-esc'), function() { sendInput('\x1b'); });
+  // Bubble ^C/Enter tabs
+  setupTouchBtn(document.getElementById('btn-interrupt'), function() { sendInput('\x03'); });
   setupTouchBtn(document.getElementById('btn-enter'), function() { sendInput('\r'); });
 
   // Keyboard mode toggle
@@ -786,15 +883,14 @@
     var h;
     if (window.visualViewport) {
       h = window.visualViewport.height;
-      // Counteract any iOS scroll offset caused by keyboard focus
-      var offset = window.visualViewport.offsetTop;
-      if (offset > 0) {
+      if (window.visualViewport.offsetTop > 0) {
         window.scrollTo(0, 0);
       }
     } else {
       h = window.innerHeight;
     }
     container.style.height = h + 'px';
+    void container.offsetHeight;
     doFit();
   }
 
@@ -816,6 +912,8 @@
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', function() {
       updateLayout();
+      // Secondary refit after keyboard animation completes
+      setTimeout(updateLayout, 300);
     });
     window.visualViewport.addEventListener('scroll', function() {
       // iOS shifts the viewport when keyboard opens; reset to prevent gap
@@ -830,6 +928,18 @@
     (function() {
       var termEl = document.getElementById('terminal');
       var startY = null, accum = 0, scrolling = false;
+
+      // Detect alternate screen (tmux, vim, etc.) - scroll via mouse escape sequences
+      function isAltBuffer() {
+        return term.buffer && term.buffer.active && term.buffer.active.type === 'alternate';
+      }
+
+      function sendScrollUp(n) {
+        for (var i = 0; i < n; i++) sendInput('\x1b[<64;1;1M');
+      }
+      function sendScrollDown(n) {
+        for (var i = 0; i < n; i++) sendInput('\x1b[<65;1;1M');
+      }
 
       // Use capture phase to intercept before xterm.js internal handlers
       termEl.addEventListener('touchstart', function(e) {
@@ -850,7 +960,13 @@
           startY = y;
           var lines = Math.trunc(accum / 15);
           if (lines !== 0) {
-            term.scrollLines(lines);
+            if (isAltBuffer()) {
+              // In alternate buffer (tmux/vim): send arrow keys
+              if (lines > 0) sendScrollUp(Math.abs(lines));
+              else sendScrollDown(Math.abs(lines));
+            } else {
+              term.scrollLines(lines);
+            }
             accum -= lines * 15;
           }
         }
