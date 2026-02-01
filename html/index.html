@@ -30,6 +30,8 @@
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
   }
+  #terminal .xterm-viewport { scrollbar-width: none; }
+  #terminal .xterm-viewport::-webkit-scrollbar { display: none; }
 
   /* ---- Shortcut bar (always visible on mobile) ---- */
   #shortcut-bar {
@@ -49,6 +51,10 @@
   #shortcut-bar button:active { background: #569cd6; color: #1e1e1e; }
   #shortcut-bar button.accent { background: #264f78; border-color: #569cd6; }
   #shortcut-bar button.active { background: #569cd6; color: #1e1e1e; }
+  #kb-keys, #kb-tabs { display: contents; }
+  #kb-tabs { display: none; }
+  #shortcut-bar.tabs-mode #kb-keys { display: none; }
+  #shortcut-bar.tabs-mode #kb-tabs { display: contents; }
 
   /* ---- Input Bubble (mobile only) ---- */
   #input-bubble {
@@ -56,7 +62,25 @@
     background: transparent;
     padding: 0 6px 4px 6px;
     transition: all 0.2s ease;
+    position: relative;
   }
+  #bubble-tabs {
+    position: absolute;
+    top: -22px; right: 10px;
+    display: flex; gap: 2px;
+    z-index: 1;
+  }
+  #bubble-tabs button {
+    height: 22px; min-width: 36px;
+    background: #333; border: 1px solid #555;
+    border-bottom: none;
+    border-radius: 5px 5px 0 0;
+    color: #d4d4d4; font-size: 11px; font-family: monospace;
+    cursor: pointer; touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    padding: 0 6px;
+  }
+  #bubble-tabs button:active { background: #569cd6; color: #1e1e1e; }
   #bubble-pill {
     display: flex; align-items: center; justify-content: space-between;
     background: rgba(86, 156, 214, 0.2);
@@ -195,6 +219,10 @@
 
   <!-- Input Bubble (mobile composition) -->
   <div id="input-bubble">
+    <div id="bubble-tabs">
+      <button id="btn-esc">Esc</button>
+      <button id="btn-enter">&#x21B5;</button>
+    </div>
     <div id="bubble-pill">
       <span id="bubble-preview">Tap to type</span>
       <span id="bubble-count"></span>
@@ -213,30 +241,43 @@
 
   <!-- Shortcut bar: terminal special keys -->
   <div id="shortcut-bar">
-    <button data-action="escape">Esc</button>
-    <button data-action="tab">Tab</button>
-    <button data-action="up">&uarr;</button>
-    <button data-action="down">&darr;</button>
-    <button data-action="left">&larr;</button>
-    <button data-action="right">&rarr;</button>
-    <button data-action="interrupt">^C</button>
-    <button data-action="prev-tab">&#x25C0;</button>
-    <button data-action="next-tab">&#x25B6;</button>
-    <button data-action="enter">&crarr;</button>
+    <span id="kb-keys">
+      <button data-action="tab">Tab</button>
+      <button data-action="up">&uarr;</button>
+      <button data-action="down">&darr;</button>
+      <button data-action="left">&larr;</button>
+      <button data-action="right">&rarr;</button>
+      <button data-action="interrupt">^C</button>
+      <button data-action="new-session">+</button>
+      <button data-action="prev-tab">&#x25C0;</button>
+      <button data-action="next-tab">&#x25B6;</button>
+    </span>
+    <span id="kb-tabs">
+      <button data-stab="1">1</button>
+      <button data-stab="2">2</button>
+      <button data-stab="3">3</button>
+      <button data-stab="4">4</button>
+      <button data-stab="5">5</button>
+      <button data-stab="6">6</button>
+      <button data-stab="7">7</button>
+      <button data-stab="8">8</button>
+      <button data-stab="9">9</button>
+    </span>
+    <button id="kb-swap">&#x2328;</button>
   </div>
 </div>
 
 <div id="desktop-toolbar">
   <button id="dt-collapse" title="Collapse toolbar" style="padding:0 2px;font-size:10px;line-height:26px;min-width:20px;">&#x25B8;</button>
   <span id="dt-mini" style="display:none;align-items:center;gap:3px;">
-    <button id="dt-mini-mode" class="accent" title="Toggle mode" style="min-width:24px;padding:0 4px;">S</button>
-    <button id="dt-mini-new" class="accent" title="New session" style="min-width:24px;padding:0 4px;">+</button>
+    <button id="dt-mini-mode" title="Toggle mode" style="min-width:24px;padding:0 4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><rect x="2" y="4" width="20" height="14" rx="2"/><line x1="6" y1="21" x2="18" y2="21"/><line x1="12" y1="18" x2="12" y2="21"/><rect x="6" y="8" width="4" height="3" rx="0.5"/></svg></button>
+    <button id="dt-mini-new" title="New session" style="min-width:24px;padding:0 4px;">+</button>
     <button id="dt-mini-prev" title="Previous tab" style="min-width:24px;padding:0 4px;font-size:10px;">&#x25C0;</button>
     <button id="dt-mini-next" title="Next tab" style="min-width:24px;padding:0 4px;font-size:10px;">&#x25B6;</button>
   </span>
   <span id="dt-content">
     <span style="color:#888;font-size:11px;font-family:monospace;margin-right:2px;">Mode:</span>
-    <button id="dt-mouse-toggle" class="accent" title="Toggle between scroll wheel and text selection">Select</button>
+    <button id="dt-mouse-toggle" title="Toggle between scroll wheel and text selection"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><rect x="2" y="4" width="20" height="14" rx="2"/><line x1="6" y1="21" x2="18" y2="21"/><line x1="12" y1="18" x2="12" y2="21"/><rect x="6" y="8" width="4" height="3" rx="0.5"/></svg></button>
     <span style="width:1px;height:18px;background:#555;margin:0 2px;"></span>
     <span style="color:#888;font-size:11px;font-family:monospace;margin-right:2px;">Tab:</span>
     <button id="dt-new-session" class="accent">+ New</button>
@@ -311,13 +352,19 @@
 
   function syncTitle(title) {
     document.title = title;
-    var tabNum = parseInt(title, 10);
+    // Extract tab number: match leading digit, or "N:" prefix, or standalone digit
+    var m = title.match(/^(\d)/);
+    var tabNum = m ? parseInt(m[1], 10) : 0;
     if (tabNum >= 1 && tabNum <= 9 && tabNum !== currentTab) {
       currentTab = tabNum;
       updateTab1Button();
       updateDesktopTabs();
+      updateShortcutTabHighlight();
     }
   }
+
+  // Also catch in-band OSC title changes from tmux (backup sync)
+  term.onTitleChange(function(title) { syncTitle(title); });
 
   function connect() {
     if (ws) {
@@ -372,8 +419,9 @@
     var dtMouseBtn = document.getElementById('dt-mouse-toggle');
     dtMouseBtn.addEventListener('click', function() {
       desktopMouseMode = !desktopMouseMode;
-      dtMouseBtn.textContent = desktopMouseMode ? 'Scroll' : 'Select';
-      dtMouseBtn.classList.toggle('accent', !desktopMouseMode);
+      dtMouseBtn.innerHTML = desktopMouseMode
+        ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><rect x="8" y="2" width="8" height="16" rx="4"/><line x1="12" y1="6" x2="12" y2="10"/><line x1="12" y1="22" x2="12" y2="18"/><line x1="8" y1="22" x2="16" y2="22"/></svg>'
+        : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><rect x="2" y="4" width="20" height="14" rx="2"/><line x1="6" y1="21" x2="18" y2="21"/><line x1="12" y1="18" x2="12" y2="21"/><rect x="6" y="8" width="4" height="3" rx="0.5"/></svg>';
       if (desktopMouseMode) {
         term.write('\x1b[?1000h\x1b[?1006h');
       } else {
@@ -424,6 +472,10 @@
     bubbleIsExpanded = true;
     bubble.className = 'bubble-expanded';
     bubbleInput.focus();
+    // Prevent iOS from scrolling the page to reveal the input
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
     updateLayout();
   }
 
@@ -432,6 +484,9 @@
     bubble.className = '';
     bubbleInput.blur();
     updateBubblePill();
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
     updateLayout();
   }
 
@@ -505,12 +560,62 @@
     });
   }
 
+  // Bubble Esc/Enter tabs
+  setupTouchBtn(document.getElementById('btn-esc'), function() { sendInput('\x1b'); });
+  setupTouchBtn(document.getElementById('btn-enter'), function() { sendInput('\r'); });
+
+  // Keyboard mode toggle
+  var kbMode = 'keys';
+  var shortcutBar = document.getElementById('shortcut-bar');
+  var kbSwap = document.getElementById('kb-swap');
+
+  function updateShortcutTabHighlight() {
+    document.querySelectorAll('#kb-tabs [data-stab]').forEach(function(b) {
+      b.classList.toggle('active', parseInt(b.getAttribute('data-stab'), 10) === currentTab);
+    });
+  }
+
+  setupTouchBtn(kbSwap, function() {
+    kbMode = kbMode === 'keys' ? 'tabs' : 'keys';
+    shortcutBar.classList.toggle('tabs-mode', kbMode === 'tabs');
+    if (kbMode === 'tabs') updateShortcutTabHighlight();
+  });
+
+  // Session tab buttons in shortcut bar
+  document.querySelectorAll('#kb-tabs [data-stab]').forEach(function(btn) {
+    setupTouchBtn(btn, function() {
+      var n = btn.getAttribute('data-stab');
+      var tabNum = parseInt(n, 10);
+      if (tabNum === 1 && currentTab === 1) {
+        sendInput('cl\r');
+      } else {
+        sendInput('\x1b' + n);
+        currentTab = tabNum;
+      }
+      updateShortcutTabHighlight();
+      updateTab1Button();
+      updateDesktopTabs();
+    });
+  });
+
   // Shortcut bar buttons with repeat-on-hold for arrows
   document.querySelectorAll('#shortcut-bar [data-action]').forEach(function(btn) {
     var action = btn.getAttribute('data-action');
     var isArrow = (action === 'up' || action === 'down' || action === 'left' || action === 'right');
 
-    if (action === 'prev-tab' || action === 'next-tab') {
+    if (action === 'new-session') {
+      setupTouchBtn(btn, function() {
+        sendInput('\x1b1');
+        currentTab = 1;
+        updateTab1Button();
+        updateDesktopTabs();
+        updateShortcutTabHighlight();
+        setTimeout(function() {
+          sendInput('\x0c');
+          setTimeout(function() { sendInput('cl\r'); }, 100);
+        }, 150);
+      });
+    } else if (action === 'prev-tab' || action === 'next-tab') {
       setupTouchBtn(btn, function() {
         if (action === 'prev-tab') {
           var prev = currentTab > 1 ? currentTab - 1 : 9;
@@ -523,9 +628,9 @@
         }
         updateTab1Button();
         updateDesktopTabs();
+        updateShortcutTabHighlight();
       });
     } else if (isArrow) {
-      // Arrows get repeat-on-hold
       var seq = ACTIONS[action];
       var repeatTimer = null;
       btn.addEventListener('touchstart', function(e) {
@@ -631,8 +736,9 @@
     });
     dtMiniMode.addEventListener('click', function() {
       document.getElementById('dt-mouse-toggle').click();
-      dtMiniMode.textContent = desktopMouseMode ? 'M' : 'S';
-      dtMiniMode.classList.toggle('accent', !desktopMouseMode);
+      dtMiniMode.innerHTML = desktopMouseMode
+        ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><rect x="8" y="2" width="8" height="16" rx="4"/><line x1="12" y1="6" x2="12" y2="10"/><line x1="12" y1="22" x2="12" y2="18"/><line x1="8" y1="22" x2="16" y2="22"/></svg>'
+        : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><rect x="2" y="4" width="20" height="14" rx="2"/><line x1="6" y1="21" x2="18" y2="21"/><line x1="12" y1="18" x2="12" y2="21"/><rect x="6" y="8" width="4" height="3" rx="0.5"/></svg>';
     });
   }
 
@@ -680,6 +786,11 @@
     var h;
     if (window.visualViewport) {
       h = window.visualViewport.height;
+      // Counteract any iOS scroll offset caused by keyboard focus
+      var offset = window.visualViewport.offsetTop;
+      if (offset > 0) {
+        window.scrollTo(0, 0);
+      }
     } else {
       h = window.innerHeight;
     }
@@ -706,6 +817,12 @@
     window.visualViewport.addEventListener('resize', function() {
       updateLayout();
     });
+    window.visualViewport.addEventListener('scroll', function() {
+      // iOS shifts the viewport when keyboard opens; reset to prevent gap
+      if (window.visualViewport.offsetTop > 0) {
+        window.scrollTo(0, 0);
+      }
+    });
   }
 
   // ---- Mobile single-finger scroll on terminal ----
@@ -714,17 +831,19 @@
       var termEl = document.getElementById('terminal');
       var startY = null, accum = 0, scrolling = false;
 
+      // Use capture phase to intercept before xterm.js internal handlers
       termEl.addEventListener('touchstart', function(e) {
         if (e.touches.length === 1) {
           startY = e.touches[0].clientY;
           accum = 0;
           scrolling = false;
         }
-      }, { passive: true });
+      }, { passive: true, capture: true });
 
       termEl.addEventListener('touchmove', function(e) {
         if (e.touches.length === 1 && startY !== null) {
           e.preventDefault();
+          e.stopPropagation();
           scrolling = true;
           var y = e.touches[0].clientY;
           accum += (startY - y);
@@ -735,14 +854,14 @@
             accum -= lines * 15;
           }
         }
-      }, { passive: false });
+      }, { passive: false, capture: true });
 
       termEl.addEventListener('touchend', function() {
         scrolling = false; startY = null; accum = 0;
-      });
+      }, { capture: true });
       termEl.addEventListener('touchcancel', function() {
         scrolling = false; startY = null; accum = 0;
-      });
+      }, { capture: true });
     })();
 
     // Prevent page-level bounce/scroll on non-terminal elements
