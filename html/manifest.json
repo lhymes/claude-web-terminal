@@ -1,6 +1,6 @@
 {
   "name": "Claude Terminal",
-  "short_name": "Claude",
+  "short_name": "Claude Code",
   "description": "Web terminal for Claude Code sessions",
   "start_url": "/",
   "display": "standalone",
@@ -8,6 +8,12 @@
   "background_color": "#1e1e1e",
   "theme_color": "#1e1e1e",
   "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "icon.svg",
       "sizes": "any",
