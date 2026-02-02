@@ -1,7 +1,10 @@
 # Claude Code Web Terminal
 
 <p align="center">
-  <img src="hero.jpg" alt="Claude Code Web Terminal" width="100%">
+  <img src="pics/1.png" alt="Dictation input with keyboard" width="24%">
+  <img src="pics/2.png" alt="Full terminal view" width="24%">
+  <img src="pics/3.png" alt="Touch input toolbar" width="24%">
+  <img src="pics/4.jpg" alt="Project picker" width="24%">
 </p>
 
 Run Claude Code from any device — your phone, tablet, or any laptop — through a purpose-built terminal interface that works entirely in the browser. No app to install, no SSH client to configure, no compromises on usability.
