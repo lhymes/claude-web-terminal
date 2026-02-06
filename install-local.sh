@@ -192,7 +192,7 @@ setw -g window-status-separator ""
 
 # Report active window index via terminal title (parsed by web frontend)
 set -g set-titles on
-set -g set-titles-string "#{window_index}"
+set -g set-titles-string "#{window_index}:#{window_name}"
 
 # Reduce escape delay for responsive feel
 set -sg escape-time 10
