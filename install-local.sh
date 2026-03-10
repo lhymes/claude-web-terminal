@@ -417,10 +417,15 @@ if [[ "$ACTION" == "add-instance" ]]; then
     NODE_BIN_DIR=$(sudo -u "$USER_NAME" bash -lc 'dirname "$(which node 2>/dev/null)"' 2>/dev/null || echo "")
     NVM_DIR_DETECT=$(sudo -u "$USER_NAME" bash -lc 'echo "$NVM_DIR"' 2>/dev/null || echo "")
 
-    # Generate .bashrc with correct PATH
+    # Generate .bashrc with correct PATH and shared aliases
     cat > "$INST_HOME/.bashrc" << INST_BASHRC
 # Claude Web Terminal — ${INSTANCE_NAME} instance
 export PATH="${CLAUDE_BIN_DIR}:${NODE_BIN_DIR}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/snap/bin:\$PATH"
+
+# Inherit settings and aliases from main user
+[ -f "${USER_HOME}/.config/claude-terminal/settings.conf" ] && . "${USER_HOME}/.config/claude-terminal/settings.conf"
+[ -f "${USER_HOME}/.bash_aliases" ] && . "${USER_HOME}/.bash_aliases"
+
 export CLAUDE_CMD="\${CLAUDE_CMD:-claude}"
 export CLAUDE_PROJECTS_DIR="\${CLAUDE_PROJECTS_DIR:-${USER_HOME}/projects}"
 alias cl='claude-launcher'
