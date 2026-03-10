@@ -25,7 +25,9 @@ The hard part isn't putting a terminal in a browser — it's making it actually 
 - **One-click session launcher** — Select projects from a fuzzy-search picker. Already-open projects switch to the existing window instead of creating duplicates.
 - **Installable as an app** — Add to Home Screen on iOS/Android for a native app experience with custom icon and full-screen display (PWA).
 - **Protected by Tailscale** — Your terminal is never exposed to the public internet. All traffic is encrypted end-to-end through Tailscale's peer-to-peer VPN. Only devices signed into your personal Tailscale network can connect.
-- **Upgrade-safe** — User settings (launch command, projects directory, sudo preference) are preserved across upgrades, with the option to change them. Sudo can be permanently locked off to skip the prompt on future upgrades.
+- **Multi-instance** — Run separate terminals for each family member or teammate on the same machine. Each instance gets its own color theme, Claude Code login, tmux session, and Tailscale URL. One command to add, one to remove.
+- **Color themes** — Eight accent colors (blue, green, purple, orange, red, teal, yellow, pink) applied to the web frontend and tmux status bar. Visually identify which instance you're in at a glance.
+- **Upgrade-safe** — User settings (launch command, projects directory, sudo preference) are preserved across upgrades, with the option to change them. Sudo can be permanently locked off to skip the prompt on future upgrades. Upgrades automatically update all instances.
 - **Cross-platform** — Runs on macOS, Linux, and Windows (WSL2). One-command install on each.
 
 ## Platform Compatibility
@@ -180,6 +182,16 @@ All installers prompt you to configure:
 
 Settings are saved to `~/.config/claude-terminal/settings.conf`.
 
+**Multi-instance flags** (Linux / WSL only):
+
+| Flag | Description |
+|------|-------------|
+| `--add-instance NAME` | Add a new instance with its own port, session, and auth |
+| `--remove-instance NAME` | Remove an instance and all its files |
+| `--list-instances` | Show all instances with port, color, and status |
+| `--color COLOR` | Set accent color (use with `--add-instance` or alone for default) |
+| `--blue`, `--green`, etc. | Shorthand for `--color blue`, `--color green`, etc. |
+
 ## Upgrading
 
 Pull the latest code and re-run the installer for your platform:
@@ -301,6 +313,115 @@ sudo rm /etc/sudoers.d/claude-terminal
 **If you enable remote sudo:** anyone with access to your terminal session has root access. Only use this with Tailscale VPN. Never expose ttyd directly to the internet or local network. Your device security (screen lock, passwords) is your last line of defense.
 
 **Service hardening:** When remote sudo is disabled, the systemd service runs with `NoNewPrivileges=true` to prevent privilege escalation. When sudo is enabled, this restriction is removed so `sudo` can function correctly.
+
+## Multi-Instance Setup
+
+Run multiple independent Claude Code terminals on the same machine — perfect for families, teams, or anyone who needs separate coding sessions. Each instance gets its own color theme, tmux session, Claude Code login, and Tailscale URL.
+
+### Adding an Instance
+
+```bash
+sudo ./install-local.sh --add-instance sam --purple
+```
+
+This creates:
+- A systemd service on the next available port (7682, 7683, etc.)
+- A purple-themed web frontend
+- An isolated home directory for separate Claude Code auth
+- A separate tmux session
+
+Available colors: `blue`, `green`, `purple`, `orange`, `red`, `teal`, `yellow`, `pink`
+
+You can also omit the color flag to be prompted interactively:
+
+```bash
+sudo ./install-local.sh --add-instance sam
+# prompts: "Color for sam [blue]:"
+```
+
+### Exposing via Tailscale
+
+Each instance needs its own Tailscale port (subpath routing is not supported):
+
+```bash
+# Default instance (already configured during install)
+tailscale serve --bg 7681
+
+# Additional instance on a separate HTTPS port
+tailscale serve --bg --https 8443 7682
+```
+
+Access URLs:
+- Default: `https://your-machine.tailnet-name.ts.net/`
+- Sam: `https://your-machine.tailnet-name.ts.net:8443/`
+
+Both persist across reboots.
+
+### First Login
+
+When an instance is first created, the user opens their URL and runs `claude` in the terminal to log into their own Claude Code account. Each instance has its own isolated config, so logging in on one instance does not affect any other.
+
+### Managing Instances
+
+```bash
+# List all instances with port, color, and status
+sudo ./install-local.sh --list-instances
+
+# Remove an instance (prompts for confirmation)
+sudo ./install-local.sh --remove-instance sam
+
+# Service control
+sudo systemctl {start|stop|restart} claude-terminal-sam
+```
+
+### Shared Projects
+
+All instances run as the same Linux user, so everyone can access the same project directories. To work on a shared project, just `cd ~/projects/project-name` from any instance. Coordinate with others if editing the same files simultaneously.
+
+### Upgrading
+
+A standard upgrade (`git pull && sudo ./install-local.sh`) upgrades the default instance and all additional instances automatically — themed frontends are regenerated, service files are updated, and CLI tools are refreshed.
+
+```bash
+cd claude-web-terminal
+git pull
+sudo ./install-local.sh
+sudo systemctl restart claude-terminal
+sudo systemctl restart claude-terminal-sam  # restart each additional instance
+```
+
+### How It Works
+
+Each instance runs its own ttyd server on a separate port, connected to its own tmux server (via `tmux -L` socket isolation). The instance gets a private home directory (`~/.sam-home/`) that holds its own Claude Code credentials, shell config, and settings. The themed frontend is a copy of the master HTML with accent colors replaced.
+
+```
+Instance "sam" (purple, port 7682):
+  Browser → Tailscale (port 8443) → ttyd (port 7682) → tmux -L claude-sam → Claude Code
+  Auth: ~/.sam-home/.claude/
+  Theme: /usr/local/share/claude-terminal/instances.d/sam/index.html
+```
+
+### Color Themes
+
+Each color applies to the web frontend (buttons, accents, active states) and the tmux status bar (active tab highlight). All themes use the same dark background (`#1e1e1e`) for consistency.
+
+| Color | Accent | Best contrast with |
+|-------|--------|--------------------|
+| blue | `#569cd6` | Default |
+| green | `#6a9955` | Blue, purple, pink |
+| purple | `#c586c0` | Blue, green, teal |
+| orange | `#ce9178` | Blue, teal |
+| red | `#f44747` | Blue, green, teal |
+| teal | `#4ec9b0` | Blue, purple, pink |
+| yellow | `#dcdcaa` | Blue, purple |
+| pink | `#d16d9e` | Blue, green, teal |
+
+To change the default instance's color:
+
+```bash
+sudo ./install-local.sh --color green
+sudo systemctl restart claude-terminal
+```
 
 ## Upgrading from Zellij Version
 
