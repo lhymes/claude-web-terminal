@@ -248,6 +248,16 @@ install_new() {
         fi
     done
 
+    # Debian/Ubuntu's ttyd package ships a generic ttyd.service on port 7681
+    # that collides with claude-terminal.service. Mask it so future apt upgrades
+    # can't resurrect the conflict.
+    if systemctl list-unit-files ttyd.service &>/dev/null; then
+        systemctl stop ttyd.service 2>/dev/null || true
+        systemctl disable ttyd.service 2>/dev/null || true
+        systemctl mask ttyd.service 2>/dev/null || true
+        print_success "Distro ttyd.service disabled and masked (port 7681 conflict)"
+    fi
+
     # Custom frontend
     mkdir -p /usr/local/share/claude-terminal
     if [ -f "$SCRIPT_DIR/html/index.html" ]; then

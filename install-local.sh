@@ -160,6 +160,29 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
+# ============================================================================
+# PREREQUISITE CHECK
+# ============================================================================
+missing_bins=()
+for bin in ttyd tmux fzf; do
+    command -v "$bin" >/dev/null 2>&1 || missing_bins+=("$bin")
+done
+if (( ${#missing_bins[@]} > 0 )); then
+    echo "ERROR: missing required binaries: ${missing_bins[*]}"
+    echo "Install on Debian/Ubuntu: sudo apt install -y ${missing_bins[*]}"
+    exit 1
+fi
+
+# Debian/Ubuntu ships a generic ttyd.service that auto-enables on apt install
+# and binds port 7681 with /bin/login — this collides with claude-terminal.service.
+# Stop, disable, and mask it so package upgrades can't resurrect the conflict.
+if systemctl list-unit-files ttyd.service >/dev/null 2>&1; then
+    systemctl stop ttyd.service 2>/dev/null || true
+    systemctl disable ttyd.service 2>/dev/null || true
+    systemctl mask ttyd.service 2>/dev/null || true
+    echo "Disabled and masked distro ttyd.service (would conflict on port 7681)."
+fi
+
 USER_NAME="${SUDO_USER:-$USER}"
 USER_HOME=$(getent passwd "$USER_NAME" | cut -d: -f6)
 CONFIG_DIR="$USER_HOME/.config/claude-terminal"
@@ -446,6 +469,11 @@ if [ -f "$HOME/.bashrc" ]; then
 fi
 INST_PROFILE
 
+    # Symlink ~/projects → main user's projects so the instance shares them.
+    # Defense-in-depth: works even if a downstream rc file overrides
+    # CLAUDE_PROJECTS_DIR to $HOME/projects (since $HOME is the instance home).
+    sudo -u "$USER_NAME" ln -sfn "$USER_HOME/projects" "$INST_HOME/projects"
+
     chown -R "$USER_NAME:$USER_NAME" "$INST_HOME"
     print_success "Instance home created ($INST_HOME)"
 
@@ -458,8 +486,14 @@ INST_PROFILE
     register_instance "$INSTANCE_NAME" "$PORT" "$INSTANCE_COLOR"
     print_success "Instance registered"
 
-    # Start service
+    # Start service and verify it stayed up
     systemctl start "claude-terminal-${INSTANCE_NAME}"
+    sleep 2
+    if ! systemctl is-active --quiet "claude-terminal-${INSTANCE_NAME}"; then
+        print_error "Service failed to start — recent logs:"
+        journalctl -xe -u "claude-terminal-${INSTANCE_NAME}" --no-pager -n 20
+        exit 1
+    fi
     print_success "Service started"
 
     echo ""
@@ -686,7 +720,16 @@ fi
 
 # ---- systemd service (default instance) ----
 write_instance_service "default" "7681" "$DEFAULT_INDEX" "/usr/bin/tmux new-session -A -s claude"
-print_success "systemd service installed (tmux + boot recovery)"
+systemctl daemon-reload
+systemctl enable --now claude-terminal >/dev/null 2>&1 || true
+sleep 2
+if systemctl is-active --quiet claude-terminal; then
+    print_success "systemd service installed and running"
+else
+    print_error "claude-terminal service failed to start — recent logs:"
+    journalctl -xe -u claude-terminal --no-pager -n 20 || true
+    print_info "Fix the issue above, then: sudo systemctl restart claude-terminal"
+fi
 
 # Register default instance
 register_instance "default" "7681" "$DEFAULT_COLOR"
@@ -730,7 +773,7 @@ if [ ! -d "$PROJECTS_DIR" ]; then
     exit 1
 fi
 
-projects=$(find "$PROJECTS_DIR" -maxdepth 1 -mindepth 1 -type d -printf '%f\n' | sort)
+projects=$(find -L "$PROJECTS_DIR" -maxdepth 1 -mindepth 1 -type d -printf '%f\n' | sort)
 
 if [ -z "$projects" ]; then
     echo "No projects found in $PROJECTS_DIR"
@@ -1172,6 +1215,14 @@ else
     echo -e "${GREEN}Installation complete.${NC} Start the service:"
 fi
 echo "  sudo systemctl restart claude-terminal"
+echo ""
+echo "Tailscale remote access (one-time setup):"
+echo "  sudo tailscale set --operator=\$USER   # so 'tailscale serve' doesn't need sudo"
+echo "  tailscale serve --bg 7681             # exposes terminal at https://<host>.<tailnet>.ts.net"
+echo "  Enable HTTPS Certificates in https://login.tailscale.com/admin/dns"
+echo ""
+echo "WSL2 troubleshooting: if remote HTTPS hangs (TCP connects but no TLS),"
+echo "  drop the tailscale MTU:  sudo ip link set dev tailscale0 mtu 1180"
 echo ""
 
 # Show instance summary if any exist

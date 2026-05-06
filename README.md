@@ -105,7 +105,10 @@ curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up
 
 # Install dependencies
 sudo apt-get install -y tmux fzf
-# ttyd: install from https://github.com/tsl0922/ttyd/releases (need 1.7.4+)
+# ttyd 1.7.4+: install from https://github.com/tsl0922/ttyd/releases
+# NOTE: `apt install ttyd` also works, but the Debian package ships a generic
+# ttyd.service that binds port 7681 and conflicts with this project.
+# install-local.sh detects and masks it automatically, so either path is safe.
 
 # Install Claude Code
 curl -fsSL https://claude.ai/install.sh | sh
@@ -128,7 +131,10 @@ curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up
 
 # Install dependencies
 sudo apt-get install -y tmux fzf
-# ttyd: install from https://github.com/tsl0922/ttyd/releases (need 1.7.4+)
+# ttyd 1.7.4+: install from https://github.com/tsl0922/ttyd/releases
+# NOTE: `apt install ttyd` also works, but the Debian package ships a generic
+# ttyd.service that binds port 7681 and conflicts with this project.
+# install-local.sh detects and masks it automatically, so either path is safe.
 
 # Install Claude Code
 curl -fsSL https://claude.ai/install.sh | sh
@@ -460,6 +466,20 @@ sudo lsof -i :7681
 sudo kill <PID>
 sudo systemctl restart claude-terminal
 ```
+
+### 502 Bad Gateway, or a raw `SERVER login:` prompt instead of the Claude UI
+Symptom: `claude-terminal.service` crash-loops with `lws_socket_bind: ERROR ... port 7681 (-1 98)` (EADDRINUSE), or the page loads but shows a grey screen with a raw `login:` and no Claude controls.
+
+Cause: Debian/Ubuntu's `ttyd` apt package ships a generic `ttyd.service` that auto-enables and squats port 7681, serving `/bin/login` with no Claude wrapper.
+
+Fix:
+```bash
+sudo systemctl disable --now ttyd.service
+sudo systemctl mask ttyd.service   # prevents apt upgrades from re-enabling it
+sudo systemctl reset-failed claude-terminal.service
+sudo systemctl restart claude-terminal.service
+```
+Recent versions of `install-local.sh` and `upgrade.sh` do this automatically.
 
 ### Can't connect remotely
 ```bash
