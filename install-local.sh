@@ -739,6 +739,7 @@ register_instance "default" "7681" "$DEFAULT_COLOR"
 cat > /usr/local/bin/claude-launcher << 'LAUNCHER'
 #!/bin/bash
 # Interactive project picker - launch multiple Claude Code sessions
+# Supports multiple instances of the same project with numbered tabs.
 
 PROJECTS_DIR="${CLAUDE_PROJECTS_DIR:-$HOME/projects}"
 CLAUDE_CMD="${CLAUDE_CMD:-claude}"
@@ -800,15 +801,34 @@ fi
 echo ""
 echo -e "${CYAN}Launching...${NC}"
 
-for project in $selected; do
-    echo -e "  ${GREEN}→${NC} $project"
-    if tmux list-windows -t "$SESSION" -F '#W' 2>/dev/null | grep -qx "$project"; then
-        tmux select-window -t "$SESSION:$project"
-    else
-        tmux new-window -a -t "$SESSION" -n "$project"
-        sleep 0.3
-        tmux send-keys -t "$SESSION:$project" "cd $PROJECTS_DIR/$project && $CLAUDE_CMD" Enter
+# next_window_name: if a window named $project already exists, find the next
+# available numbered name (Project-2, Project-3, ...). This lets you open
+# multiple instances of the same project with distinguishable tab names.
+next_window_name() {
+    local base="$1"
+    local existing
+    existing=$(tmux list-windows -t "$SESSION" -F '#W' 2>/dev/null)
+
+    # If no window with this base name exists, use the base name as-is.
+    if ! echo "$existing" | grep -qx "$base"; then
+        echo "$base"
+        return
     fi
+
+    # Find the next available number.
+    local n=2
+    while echo "$existing" | grep -qx "${base}-${n}"; do
+        ((n++))
+    done
+    echo "${base}-${n}"
+}
+
+for project in $selected; do
+    window_name=$(next_window_name "$project")
+    echo -e "  ${GREEN}→${NC} $window_name"
+    tmux new-window -a -t "$SESSION" -n "$window_name"
+    sleep 0.3
+    tmux send-keys -t "$SESSION:$window_name" "cd $PROJECTS_DIR/$project && $CLAUDE_CMD" Enter
     sleep 0.2
 done
 
